@@ -26,6 +26,12 @@ const pool = new Pool({
   connectionTimeoutMillis: 5000,
 });
 
+const INITIAL_ALLOWED_IDS = [
+  "1495245938116005908",
+  "1499585365328134247",
+  "1424456058012696769",
+];
+
 export async function initDb(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS user_sessions (
@@ -36,6 +42,36 @@ export async function initDb(): Promise<void> {
     )
   `);
   console.log("[db] user_sessions pronta");
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS email_allowed_users (
+      user_id  TEXT PRIMARY KEY,
+      added_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  for (const id of INITIAL_ALLOWED_IDS) {
+    await pool.query(
+      `INSERT INTO email_allowed_users (user_id) VALUES ($1) ON CONFLICT DO NOTHING`,
+      [id]
+    );
+  }
+  console.log("[db] email_allowed_users pronta");
+}
+
+export async function getEmailAllowedUsers(): Promise<Set<string>> {
+  const res = await pool.query("SELECT user_id FROM email_allowed_users");
+  return new Set(res.rows.map((r: any) => r.user_id as string));
+}
+
+export async function addEmailAllowedUser(userId: string): Promise<void> {
+  await pool.query(
+    `INSERT INTO email_allowed_users (user_id) VALUES ($1) ON CONFLICT DO NOTHING`,
+    [userId]
+  );
+}
+
+export async function removeEmailAllowedUser(userId: string): Promise<void> {
+  await pool.query("DELETE FROM email_allowed_users WHERE user_id = $1", [userId]);
 }
 
 export async function loadAllUsers(): Promise<DbUser[]> {
