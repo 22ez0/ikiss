@@ -1,25 +1,33 @@
-# Faren API — Render Blueprint (multi-account ready)
+# Faren — Render Blueprint (API + Discord Bot)
 #
-# This blueprint is deployed to MULTIPLE Render accounts (rotation strategy).
-# All accounts run the SAME service backed by a SHARED Neon Postgres.
-# The Cloudflare Worker rotates between the resulting URLs (failover on 5xx).
+# Este blueprint cria DOIS serviços:
+#   1. faren-api        — API REST (Express 5 + Neon Postgres)
+#   2. faren-discord-bot — Bot do Discord (tsx, sem build step)
 #
-# IMPORTANT: When applying this blueprint to a new Render account, the
-# following env vars must be set manually in the Render dashboard
-# (Service → Environment) — they are intentionally not committed because
-# (a) they are secrets, and (b) they MUST be identical across ALL accounts
-# so that JWT/session tokens issued by backend A can be verified by backend B.
+# A API é implantada em MÚLTIPLAS contas Render (rotação de failover).
+# Todos os accounts usam o MESMO Neon Postgres compartilhado.
+# O Cloudflare Worker rotaciona entre as URLs (failover em 5xx).
 #
-#   DATABASE_URL          → Neon pooled connection string (same for all accounts)
-#   SESSION_SECRET        → 44-byte secret (same for all accounts)
-#   ADMIN_SECRET          → 44-byte secret (same for all accounts)
-#   ADMIN_PASSWORD        → bcrypt of admin password
+# IMPORTANTE: ao aplicar este blueprint em uma conta nova, defina manualmente
+# no painel Render (Service → Environment) as variáveis marcadas sync: false.
+#
+# Para a API (faren-api):
+#   DATABASE_URL          → Neon pooled connection string (igual em todos os accounts)
+#   SESSION_SECRET        → 44 bytes (igual em todos os accounts)
+#   ADMIN_SECRET          → 44 bytes (igual em todos os accounts)
+#   ADMIN_PASSWORD        → bcrypt da senha admin
 #   RESEND_API_KEY        → Resend.com API key
 #   TURNSTILE_SECRET_KEY  → Cloudflare Turnstile secret
 #   R2_ACCESS_KEY_ID      → Cloudflare R2 access key
 #   R2_SECRET_ACCESS_KEY  → Cloudflare R2 secret
+#   EMAIL_WEBHOOK_SECRET  → segredo compartilhado com o Cloudflare Worker
 #
-# Use scripts/render-fanout.mjs to bulk-set these across all 10 accounts.
+# Para o bot (faren-discord-bot):
+#   DISCORD_BOT_TOKEN     → token do bot (Discord Developer Portal)
+#   DATABASE_URL          → mesma Neon connection string da API
+#   EMAIL_WEBHOOK_SECRET  → mesmo segredo da API
+#
+# Use scripts/render-fanout.mjs para aplicar em massa nas 10 contas.
 
 services:
   - type: web
@@ -76,4 +84,34 @@ services:
       - key: R2_ACCESS_KEY_ID
         sync: false
       - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      # Email inbound webhook (Cloudflare Worker → API)
+      - key: EMAIL_WEBHOOK_SECRET
+        sync: false
+
+  - type: web
+    name: faren-discord-bot
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: npm install -g pnpm@10 && pnpm install
+    startCommand: pnpm --filter @workspace/discord-bot run start
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # Bot token — obter em discord.com/developers/applications
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      # Mesma Neon connection string da API
+      - key: DATABASE_URL
+        sync: false
+      # URL da API (ajustar se usar outro account Render)
+      - key: API_BASE_URL
+        value: https://faren-api-wn1z.onrender.com
+      # Segredo compartilhado com Cloudflare Worker e API
+      - key: EMAIL_WEBHOOK_SECRET
         sync: false
