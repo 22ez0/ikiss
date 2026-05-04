@@ -5,7 +5,7 @@ import {
   InteractionType,
 } from "discord.js";
 import { handleKCommand } from "../commands/k.js";
-import { handleSelectMenu } from "./select-menu.js";
+import { handleSelectMenu, handleEmailPanelSelect } from "./select-menu.js";
 import { handleModalSubmit } from "./modals.js";
 
 export function registerInteractionHandlers(client: Client): void {
@@ -19,7 +19,11 @@ export function registerInteractionHandlers(client: Client): void {
       }
 
       if (interaction.isStringSelectMenu()) {
-        await handleSelectMenu(interaction);
+        if (interaction.customId === "email_panel_select") {
+          await handleEmailPanelSelect(interaction);
+        } else {
+          await handleSelectMenu(interaction);
+        }
         return;
       }
 

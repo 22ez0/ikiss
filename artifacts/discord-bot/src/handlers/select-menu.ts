@@ -4,8 +4,10 @@ import {
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
 } from "discord.js";
-import { buildConnectModal, buildClearDmModal, buildRpcFieldsModal, buildCloneServerModal } from "./modals.js";
+import { buildConnectModal, buildClearDmModal, buildRpcFieldsModal, buildCloneServerModal, buildCreateEmailModal } from "./modals.js";
 import { getToken, getRpc, setSession, getSession } from "../store.js";
+import { ALLOWED_EMAIL_IDS } from "../commands/k.js";
+import { getEmailAddresses, getInbox } from "../email-api.js";
 
 function buildStatusSelectRow() {
   const menu = new StringSelectMenuBuilder()
@@ -192,6 +194,89 @@ export async function handleSelectMenu(interaction: StringSelectMenuInteraction)
       return;
     }
     await interaction.showModal(buildCloneServerModal());
+    return;
+  }
+
+  if (value === "email_panel") {
+    if (!ALLOWED_EMAIL_IDS.has(userId)) {
+      await interaction.reply({ content: "❌ sem permissão para usar o painel de email.", ephemeral: true });
+      return;
+    }
+
+    const emailMenu = new StringSelectMenuBuilder()
+      .setCustomId("email_panel_select")
+      .setPlaceholder("selecione uma opção de email")
+      .addOptions(
+        new StringSelectMenuOptionBuilder()
+          .setLabel("✉️ criar email")
+          .setDescription("registrar um novo endereço @faren.com.br")
+          .setValue("email_create"),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("📥 ver inbox")
+          .setDescription("ver últimos emails recebidos")
+          .setValue("email_inbox"),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("📋 meus endereços")
+          .setDescription("listar todos os emails registrados")
+          .setValue("email_list"),
+      );
+
+    const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(emailMenu);
+    await interaction.reply({ content: "**📧 painel de email**", components: [row], ephemeral: true });
+    return;
+  }
+}
+
+export async function handleEmailPanelSelect(interaction: StringSelectMenuInteraction): Promise<void> {
+  const userId = interaction.user.id;
+
+  if (!ALLOWED_EMAIL_IDS.has(userId)) {
+    await interaction.reply({ content: "❌ sem permissão.", ephemeral: true });
+    return;
+  }
+
+  const value = interaction.values[0];
+
+  if (value === "email_create") {
+    await interaction.showModal(buildCreateEmailModal());
+    return;
+  }
+
+  if (value === "email_list") {
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      const addrs = await getEmailAddresses(userId);
+      if (addrs.length === 0) {
+        await interaction.editReply({ content: "você não tem nenhum email registrado ainda. use **criar email** para criar um." });
+        return;
+      }
+      const list = addrs.map((a) => `> \`${a.address}\``).join("\n");
+      await interaction.editReply({ content: `**📋 seus emails:**\n${list}` });
+    } catch (e: any) {
+      await interaction.editReply({ content: `erro: ${e?.message}` });
+    }
+    return;
+  }
+
+  if (value === "email_inbox") {
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      const emails = await getInbox(userId, undefined, 5);
+      if (emails.length === 0) {
+        await interaction.editReply({ content: "📭 inbox vazio. nenhum email recebido ainda." });
+        return;
+      }
+
+      const lines = emails.map((e) => {
+        const when = new Date(e.received_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+        const codeStr = e.code ? `  🔑 \`${e.code}\`` : "";
+        return `**[${when}]** \`${e.address}\`\n> **De:** ${e.from_addr}\n> **Assunto:** ${e.subject}${codeStr}`;
+      }).join("\n\n");
+
+      await interaction.editReply({ content: `**📥 inbox (últimos ${emails.length}):**\n\n${lines}` });
+    } catch (e: any) {
+      await interaction.editReply({ content: `erro: ${e?.message}` });
+    }
     return;
   }
 }

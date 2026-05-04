@@ -148,8 +148,51 @@ export function buildRpcFieldsModal(
   return modal;
 }
 
+export function buildCreateEmailModal(): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId("modal_create_email")
+    .setTitle("criar email @faren.com.br")
+    .addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("email_prefix")
+          .setLabel("prefixo do email")
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder("ex: discord, conta, meu, qualquer coisa")
+          .setMinLength(2)
+          .setMaxLength(40)
+          .setRequired(true)
+      )
+    );
+}
+
 export async function handleModalSubmit(interaction: ModalSubmitInteraction): Promise<void> {
   const { customId, user } = interaction;
+
+  if (customId === "modal_create_email") {
+    await interaction.deferReply({ ephemeral: true });
+    const { ALLOWED_EMAIL_IDS } = await import("../commands/k.js");
+    if (!ALLOWED_EMAIL_IDS.has(user.id)) {
+      await interaction.editReply({ content: "❌ sem permissão." });
+      return;
+    }
+    const prefix = interaction.fields.getTextInputValue("email_prefix").trim().toLowerCase().replace(/[^a-z0-9._+-]/g, "");
+    if (!prefix) { await interaction.editReply({ content: "prefixo inválido. use apenas letras e números." }); return; }
+    try {
+      const { createEmailAddress } = await import("../email-api.js");
+      const result = await createEmailAddress(user.id, prefix);
+      if ("error" in result) {
+        await interaction.editReply({ content: `❌ ${result.error}` });
+      } else {
+        await interaction.editReply({
+          content: `✅ email criado com sucesso!\n\n> **\`${result.address}\`**\n\nQualquer email enviado pra este endereço vai aparecer aqui no Discord automaticamente.`,
+        });
+      }
+    } catch (e: any) {
+      await interaction.editReply({ content: `erro: ${e?.message}` });
+    }
+    return;
+  }
 
   if (customId === "modal_connect_token") {
     await interaction.deferReply({ ephemeral: true });
