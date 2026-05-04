@@ -198,11 +198,6 @@ export async function handleSelectMenu(interaction: StringSelectMenuInteraction)
   }
 
   if (value === "email_panel") {
-    if (!ALLOWED_EMAIL_IDS.has(userId)) {
-      await interaction.reply({ content: "❌ sem permissão para usar o painel de email.", ephemeral: true });
-      return;
-    }
-
     const emailMenu = new StringSelectMenuBuilder()
       .setCustomId("email_panel_select")
       .setPlaceholder("selecione uma opção de email")
