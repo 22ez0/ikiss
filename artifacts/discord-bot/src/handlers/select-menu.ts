@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { buildConnectModal, buildClearDmModal, buildRpcFieldsModal, buildCloneServerModal, buildCreateEmailModal } from "./modals.js";
 import { getToken, getRpc, setSession, getSession } from "../store.js";
-import { ALLOWED_EMAIL_IDS } from "../commands/k.js";
+import { getEmailAllowedUsers } from "../db.js";
 import { getEmailAddresses, getInbox } from "../email-api.js";
 
 function buildStatusSelectRow() {
@@ -225,7 +225,8 @@ export async function handleSelectMenu(interaction: StringSelectMenuInteraction)
 export async function handleEmailPanelSelect(interaction: StringSelectMenuInteraction): Promise<void> {
   const userId = interaction.user.id;
 
-  if (!ALLOWED_EMAIL_IDS.has(userId)) {
+  const allowed = await getEmailAllowedUsers();
+  if (!allowed.has(userId)) {
     await interaction.reply({ content: "❌ sem permissão.", ephemeral: true });
     return;
   }
