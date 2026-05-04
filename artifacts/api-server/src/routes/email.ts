@@ -82,7 +82,7 @@ async function sendDiscordDm(content: string): Promise<void> {
   }
 }
 
-router.post("/api/email/inbound", async (req: Request, res: Response): Promise<void> => {
+router.post("/email/inbound", async (req: Request, res: Response): Promise<void> => {
   if (EMAIL_WEBHOOK_SECRET) {
     const secret = req.headers["x-webhook-secret"] ?? req.headers["x-email-secret"];
     if (secret !== EMAIL_WEBHOOK_SECRET) {
@@ -126,7 +126,7 @@ router.post("/api/email/inbound", async (req: Request, res: Response): Promise<v
   }
 });
 
-router.post("/api/email/test", async (req: Request, res: Response): Promise<void> => {
+router.post("/email/test", async (req: Request, res: Response): Promise<void> => {
   try {
     await sendDiscordDm(
       `📧 **TESTE DE EMAIL**\n\`\`\`\nPara:     voce@faren.com.br\nDe:       test@example.com\nAssunto:  Seu código de verificação\n\`\`\`\n🔑 **CÓDIGO: \`847291\`**\n\n**Conteúdo:**\n\`\`\`\nSeu código de verificação é 847291.\nEle expira em 10 minutos.\n\`\`\``
