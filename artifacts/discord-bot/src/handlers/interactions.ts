@@ -5,6 +5,7 @@ import {
   InteractionType,
 } from "discord.js";
 import { handleKCommand } from "../commands/k.js";
+import { handleIdCommand } from "../commands/id.js";
 import { handleSelectMenu, handleEmailPanelSelect } from "./select-menu.js";
 import { handleModalSubmit } from "./modals.js";
 
@@ -14,6 +15,8 @@ export function registerInteractionHandlers(client: Client): void {
       if (interaction.isChatInputCommand()) {
         if (interaction.commandName === "k") {
           await handleKCommand(interaction);
+        } else if (interaction.commandName === "id") {
+          await handleIdCommand(interaction);
         }
         return;
       }
