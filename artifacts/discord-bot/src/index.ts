@@ -1,8 +1,10 @@
 import { startBot } from "./bot.js";
 import { startHealthServer } from "./health.js";
+import { startKeepalive } from "./keepalive.js";
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 startHealthServer(PORT);
+startKeepalive(); // inicia imediatamente — não espera o Discord conectar
 
 process.on("unhandledRejection", (err) => {
   console.error("[unhandledRejection]", err);
