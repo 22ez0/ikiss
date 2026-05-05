@@ -14,6 +14,7 @@ import galleryRouter from "./gallery";
 import publicationsRouter from "./publications";
 import discordRouter from "./discord";
 import emailRouter from "./email";
+import emailsnoahRouter from "./emailsnoah";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(galleryRouter);
 router.use(publicationsRouter);
 router.use(discordRouter);
 router.use(emailRouter);
+router.use(emailsnoahRouter);
 
 export default router;

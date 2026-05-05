@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import { handleKCommand } from "../commands/k.js";
 import { handleIdCommand } from "../commands/id.js";
+import { handleSenhaCommand } from "../commands/senha.js";
 import { handleSelectMenu, handleEmailPanelSelect, handleEmailInboxSelect } from "./select-menu.js";
 import { handleModalSubmit } from "./modals.js";
 
@@ -17,6 +18,8 @@ export function registerInteractionHandlers(client: Client): void {
           await handleKCommand(interaction);
         } else if (interaction.commandName === "id") {
           await handleIdCommand(interaction);
+        } else if (interaction.commandName === "senha") {
+          await handleSenhaCommand(interaction);
         }
         return;
       }

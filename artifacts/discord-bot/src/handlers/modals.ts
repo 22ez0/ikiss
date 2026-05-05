@@ -148,6 +148,34 @@ export function buildRpcFieldsModal(
   return modal;
 }
 
+export function buildSenhaModal(): ModalBuilder {
+  return new ModalBuilder()
+    .setCustomId("modal_set_senha")
+    .setTitle("cadastrar senha — faren.com.br/emailsnoah")
+    .addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("senha_input")
+          .setLabel("nova senha")
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder("mínimo 4 caracteres")
+          .setMinLength(4)
+          .setMaxLength(64)
+          .setRequired(true)
+      ),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("senha_confirm")
+          .setLabel("confirmar senha")
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder("repita a senha acima")
+          .setMinLength(4)
+          .setMaxLength(64)
+          .setRequired(true)
+      )
+    );
+}
+
 export function buildCreateEmailModal(): ModalBuilder {
   return new ModalBuilder()
     .setCustomId("modal_create_email")
@@ -168,6 +196,45 @@ export function buildCreateEmailModal(): ModalBuilder {
 
 export async function handleModalSubmit(interaction: ModalSubmitInteraction): Promise<void> {
   const { customId, user } = interaction;
+
+  if (customId === "modal_set_senha") {
+    await interaction.deferReply({ ephemeral: true });
+    const { SENHA_ALLOWED_IDS } = await import("../commands/senha.js");
+    if (!SENHA_ALLOWED_IDS.has(user.id)) {
+      await interaction.editReply({ content: "❌ sem permissão." });
+      return;
+    }
+    const senha = interaction.fields.getTextInputValue("senha_input").trim();
+    const confirm = interaction.fields.getTextInputValue("senha_confirm").trim();
+    if (senha !== confirm) {
+      await interaction.editReply({ content: "❌ as senhas não coincidem. tente novamente." });
+      return;
+    }
+    if (senha.length < 4) {
+      await interaction.editReply({ content: "❌ senha muito curta (mínimo 4 caracteres)." });
+      return;
+    }
+    try {
+      const API_BASE = process.env.API_BASE_URL ?? "http://localhost:8080";
+      const SECRET = process.env.EMAIL_WEBHOOK_SECRET ?? "";
+      const res = await fetch(`${API_BASE}/api/emailsnoah/set-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-webhook-secret": SECRET },
+        body: JSON.stringify({ discordUserId: user.id, password: senha }),
+      });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (data.ok) {
+        await interaction.editReply({
+          content: `✅ senha cadastrada com sucesso!\n\nacesse **faren.com.br/emailsnoah** e faça login com sua conta.`,
+        });
+      } else {
+        await interaction.editReply({ content: `❌ ${data.error ?? "erro ao salvar senha"}` });
+      }
+    } catch (e: any) {
+      await interaction.editReply({ content: `erro: ${e?.message}` });
+    }
+    return;
+  }
 
   if (customId === "modal_create_email") {
     await interaction.deferReply({ ephemeral: true });

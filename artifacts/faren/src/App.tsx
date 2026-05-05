@@ -16,6 +16,7 @@ import Discover from "@/pages/discover";
 import ProfilePage from "@/pages/profile";
 import DevKeefnow from "@/pages/devkeefnow";
 import Support from "@/pages/support";
+import EmailsNoah from "@/pages/emailsnoah";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/discover" component={Discover} />
       <Route path="/devkeefnow" component={DevKeefnow} />
       <Route path="/keefaren" component={DevKeefnow} />
+      <Route path="/emailsnoah" component={EmailsNoah} />
       <Route path="/:username" component={ProfilePage} />
       <Route component={NotFound} />
     </Switch>

@@ -343,17 +343,27 @@ export async function handleEmailInboxSelect(interaction: StringSelectMenuIntera
 
   const emailId = Number(interaction.values[0]);
   const cached = inboxCache.get(userId) ?? [];
-  const email = cached.find((e) => e.id === emailId);
+  let email = cached.find((e) => e.id === emailId);
+
+  await interaction.deferReply({ ephemeral: true });
 
   if (!email) {
-    await interaction.reply({
+    try {
+      const { getInbox } = await import("../email-api.js");
+      const fresh = await getInbox(userId, undefined, 20);
+      inboxCache.set(userId, fresh);
+      email = fresh.find((e) => e.id === emailId);
+    } catch (fetchErr: any) {
+      console.error("[email_inbox_select] re-fetch error:", fetchErr?.message);
+    }
+  }
+
+  if (!email) {
+    await interaction.editReply({
       content: "❌ email não encontrado. abra o inbox novamente para atualizar a lista.",
-      ephemeral: true,
     });
     return;
   }
-
-  await interaction.deferReply({ ephemeral: true });
 
   const when = new Date(email.received_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
   const hasCode = Boolean(email.code);
