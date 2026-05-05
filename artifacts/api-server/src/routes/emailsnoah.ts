@@ -26,12 +26,29 @@ const pool = new Pool({
   connectionTimeoutMillis: 5000,
 });
 
+const discordStatusCache: Record<
+  string,
+  { status: string; activity: string; avatarUrl: string; updatedAt: number }
+> = {};
+
 async function ensureTables(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS emailsnoah_passwords (
       discord_user_id TEXT PRIMARY KEY,
       password_hash   TEXT NOT NULL,
       updated_at      TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS emailsnoah_messages (
+      id              SERIAL PRIMARY KEY,
+      from_discord_id TEXT NOT NULL,
+      from_name       TEXT NOT NULL,
+      to_discord_id   TEXT NOT NULL,
+      to_name         TEXT NOT NULL,
+      subject         TEXT NOT NULL,
+      body            TEXT NOT NULL,
+      sent_at         TIMESTAMPTZ DEFAULT NOW()
     )
   `);
 }
@@ -60,6 +77,38 @@ function verifyToken(req: Request): { discordUserId: string; name: string } | nu
 
 router.get("/emailsnoah/users", (_req: Request, res: Response): void => {
   res.json({ users: ALLOWED_USERS.map((u) => ({ id: u.id, name: u.name })) });
+});
+
+router.get("/emailsnoah/discord-status", (_req: Request, res: Response): void => {
+  const statuses: Record<string, { status: string; activity: string; avatarUrl: string }> = {};
+  for (const u of ALLOWED_USERS) {
+    const cached = discordStatusCache[u.id];
+    statuses[u.id] = cached
+      ? { status: cached.status, activity: cached.activity, avatarUrl: cached.avatarUrl }
+      : { status: "offline", activity: "", avatarUrl: "" };
+  }
+  res.json({ statuses });
+});
+
+router.post("/emailsnoah/discord-status", (req: Request, res: Response): void => {
+  if (!checkSecret(req, res)) return;
+  const { discordUserId, status, activity, avatarUrl } = req.body as {
+    discordUserId?: string;
+    status?: string;
+    activity?: string;
+    avatarUrl?: string;
+  };
+  if (!discordUserId || !ALLOWED_IDS.includes(discordUserId)) {
+    res.status(400).json({ error: "invalid user" });
+    return;
+  }
+  discordStatusCache[discordUserId] = {
+    status: status ?? "offline",
+    activity: activity ?? "",
+    avatarUrl: avatarUrl ?? "",
+    updatedAt: Date.now(),
+  };
+  res.json({ ok: true });
 });
 
 router.post("/emailsnoah/set-password", async (req: Request, res: Response): Promise<void> => {
@@ -209,6 +258,56 @@ router.get("/emailsnoah/email/:id", async (req: Request, res: Response): Promise
       return;
     }
     res.json({ email: r.rows[0] });
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message });
+  }
+});
+
+router.post("/emailsnoah/send-message", async (req: Request, res: Response): Promise<void> => {
+  if (!checkSecret(req, res)) return;
+  try {
+    const { fromDiscordId, fromName, toDiscordId, toName, subject, body } = req.body as {
+      fromDiscordId?: string;
+      fromName?: string;
+      toDiscordId?: string;
+      toName?: string;
+      subject?: string;
+      body?: string;
+    };
+    if (!fromDiscordId || !toDiscordId || !subject || !body) {
+      res.status(400).json({ error: "campos obrigatórios faltando" });
+      return;
+    }
+    if (!ALLOWED_IDS.includes(fromDiscordId) || !ALLOWED_IDS.includes(toDiscordId)) {
+      res.status(403).json({ error: "Usuário não autorizado" });
+      return;
+    }
+    await pool.query(
+      `INSERT INTO emailsnoah_messages (from_discord_id, from_name, to_discord_id, to_name, subject, body)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [fromDiscordId, fromName ?? fromDiscordId, toDiscordId, toName ?? toDiscordId, subject, body]
+    );
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message });
+  }
+});
+
+router.get("/emailsnoah/messages", async (req: Request, res: Response): Promise<void> => {
+  const session = verifyToken(req);
+  if (!session) {
+    res.status(401).json({ error: "Não autenticado" });
+    return;
+  }
+  try {
+    const r = await pool.query(
+      `SELECT id, from_discord_id, from_name, to_discord_id, to_name, subject, body, sent_at
+       FROM emailsnoah_messages
+       WHERE to_discord_id = $1
+       ORDER BY sent_at DESC LIMIT 50`,
+      [session.discordUserId]
+    );
+    res.json({ messages: r.rows });
   } catch (e: any) {
     res.status(500).json({ error: e?.message });
   }

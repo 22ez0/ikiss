@@ -7,6 +7,7 @@ import {
 import { handleKCommand } from "../commands/k.js";
 import { handleIdCommand } from "../commands/id.js";
 import { handleSenhaCommand } from "../commands/senha.js";
+import { handleEmailCommand } from "../commands/email.js";
 import { handleSelectMenu, handleEmailPanelSelect, handleEmailInboxSelect } from "./select-menu.js";
 import { handleModalSubmit } from "./modals.js";
 
@@ -20,6 +21,8 @@ export function registerInteractionHandlers(client: Client): void {
           await handleIdCommand(interaction);
         } else if (interaction.commandName === "senha") {
           await handleSenhaCommand(interaction);
+        } else if (interaction.commandName === "email") {
+          await handleEmailCommand(interaction);
         }
         return;
       }

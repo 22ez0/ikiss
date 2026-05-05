@@ -1,5 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Mail, Inbox, Star, Send, Trash2, ChevronRight, ArrowLeft, LogOut, RefreshCw, Search, Paperclip, ExternalLink, Eye, Users } from "lucide-react";
+import {
+  Mail,
+  Inbox,
+  Send,
+  ArrowLeft,
+  LogOut,
+  RefreshCw,
+  Search,
+  ExternalLink,
+  Users,
+  MessageSquare,
+} from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -9,6 +20,12 @@ const USERS = [
   { id: "1499585365328134247", name: "erick", color: "#34d399" },
 ];
 
+interface DiscordStatus {
+  status: string;
+  activity: string;
+  avatarUrl: string;
+}
+
 interface InboxEmail {
   id: number;
   address: string;
@@ -17,6 +34,18 @@ interface InboxEmail {
   body: string;
   code: string | null;
   received_at: string;
+}
+
+interface DiscordMessage {
+  id: number;
+  from_discord_id: string;
+  from_name: string;
+  to_discord_id: string;
+  to_name: string;
+  subject: string;
+  body: string;
+  sent_at: string;
+  _type: "dm";
 }
 
 interface ProfileData {
@@ -41,7 +70,7 @@ function statusColor(status: string | null) {
   if (status === "online") return "#23d18b";
   if (status === "idle") return "#f0b232";
   if (status === "dnd") return "#f23f43";
-  return "#747f8d";
+  return "#4f545c";
 }
 
 function statusLabel(status: string | null) {
@@ -64,8 +93,11 @@ function formatDate(iso: string) {
 function formatFullDate(iso: string) {
   return new Date(iso).toLocaleString("pt-BR", {
     timeZone: "America/Sao_Paulo",
-    day: "2-digit", month: "long", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -95,12 +127,65 @@ function cleanBody(raw: string): string {
   return text.replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function UserAvatar({
+  user,
+  avatarUrl,
+  size = 44,
+  statusDot,
+}: {
+  user: (typeof USERS)[0];
+  avatarUrl?: string;
+  size?: number;
+  statusDot?: string | null;
+}) {
+  return (
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt={user.name}
+          className="rounded-full object-cover w-full h-full"
+          style={{ border: `2px solid ${user.color}` }}
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+      ) : (
+        <div
+          className="rounded-full flex items-center justify-center font-black uppercase w-full h-full"
+          style={{
+            fontSize: size * 0.4,
+            background: user.color + "22",
+            color: user.color,
+            border: `2px solid ${user.color}`,
+          }}
+        >
+          {user.name[0]}
+        </div>
+      )}
+      {statusDot !== undefined && (
+        <span
+          className="absolute rounded-full border-2 border-black"
+          style={{
+            background: statusColor(statusDot),
+            width: size * 0.3,
+            height: size * 0.3,
+            bottom: -1,
+            right: -1,
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function EmailsNoah() {
   const [step, setStep] = useState<"login" | "app">("login");
-  const [selectedUser, setSelectedUser] = useState<typeof USERS[0] | null>(null);
+  const [selectedUser, setSelectedUser] = useState<(typeof USERS)[0] | null>(null);
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
+  const [discordStatuses, setDiscordStatuses] = useState<Record<string, DiscordStatus>>({});
 
   const [token, setToken] = useState<string | null>(null);
   const [meId, setMeId] = useState<string>("");
@@ -108,12 +193,16 @@ export default function EmailsNoah() {
 
   const [emails, setEmails] = useState<InboxEmail[]>([]);
   const [addresses, setAddresses] = useState<string[]>([]);
+  const [discordMessages, setDiscordMessages] = useState<DiscordMessage[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<InboxEmail | null>(null);
+  const [selectedDm, setSelectedDm] = useState<DiscordMessage | null>(null);
   const [profiles, setProfiles] = useState<ProfileData[]>([]);
   const [inboxLoading, setInboxLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"inbox" | "profiles">("inbox");
+  const [activeTab, setActiveTab] = useState<"inbox" | "mensagens" | "perfis">("inbox");
 
+  const [musicPlaying, setMusicPlaying] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -128,6 +217,36 @@ export default function EmailsNoah() {
     }
   }, []);
 
+  const fetchStatuses = useCallback(() => {
+    fetch(`${API_BASE}/api/emailsnoah/discord-status`)
+      .then((r) => r.json())
+      .then((d: any) => {
+        if (d.statuses) setDiscordStatuses(d.statuses);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchStatuses();
+    const i = setInterval(fetchStatuses, 15000);
+    return () => clearInterval(i);
+  }, [fetchStatuses]);
+
+  const startMusic = useCallback(() => {
+    if (iframeRef.current && !musicPlaying) {
+      const url =
+        "https://open.spotify.com/embed/playlist/5oS4loJrmrR72LVIs8dCPB?utm_source=generator&autoplay=1&theme=0";
+      iframeRef.current.src = url;
+      setMusicPlaying(true);
+    }
+  }, [musicPlaying]);
+
+  useEffect(() => {
+    const handler = () => startMusic();
+    document.addEventListener("click", handler, { once: true });
+    return () => document.removeEventListener("click", handler);
+  }, [startMusic]);
+
   const doLogin = useCallback(async () => {
     if (!selectedUser || !password) return;
     setLoginLoading(true);
@@ -138,7 +257,13 @@ export default function EmailsNoah() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ discordUserId: selectedUser.id, password }),
       });
-      const data = await res.json() as { ok?: boolean; token?: string; name?: string; discordUserId?: string; error?: string };
+      const data = (await res.json()) as {
+        ok?: boolean;
+        token?: string;
+        name?: string;
+        discordUserId?: string;
+        error?: string;
+      };
       if (data.ok && data.token && data.discordUserId) {
         localStorage.setItem("emailsnoah_token", data.token);
         localStorage.setItem("emailsnoah_id", data.discordUserId);
@@ -161,13 +286,31 @@ export default function EmailsNoah() {
   const fetchInbox = useCallback(async (tk: string) => {
     setInboxLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/emailsnoah/inbox?limit=30`, {
-        headers: { Authorization: `Bearer ${tk}` },
-      });
-      if (res.status === 401) { doLogout(); return; }
-      const data = await res.json() as { emails?: InboxEmail[]; addresses?: string[] };
-      setEmails(data.emails ?? []);
-      setAddresses(data.addresses ?? []);
+      const [emailRes, msgRes] = await Promise.all([
+        fetch(`${API_BASE}/api/emailsnoah/inbox?limit=30`, {
+          headers: { Authorization: `Bearer ${tk}` },
+        }),
+        fetch(`${API_BASE}/api/emailsnoah/messages`, {
+          headers: { Authorization: `Bearer ${tk}` },
+        }),
+      ]);
+      if (emailRes.status === 401) {
+        doLogout();
+        return;
+      }
+      const emailData = (await emailRes.json()) as {
+        emails?: InboxEmail[];
+        addresses?: string[];
+      };
+      setEmails(emailData.emails ?? []);
+      setAddresses(emailData.addresses ?? []);
+
+      if (msgRes.ok) {
+        const msgData = (await msgRes.json()) as { messages?: any[] };
+        setDiscordMessages(
+          (msgData.messages ?? []).map((m: any) => ({ ...m, _type: "dm" }))
+        );
+      }
     } catch {}
     setInboxLoading(false);
   }, []);
@@ -178,7 +321,7 @@ export default function EmailsNoah() {
         headers: { Authorization: `Bearer ${tk}` },
       });
       if (!res.ok) return;
-      const data = await res.json() as { profiles?: ProfileData[] };
+      const data = (await res.json()) as { profiles?: ProfileData[] };
       setProfiles(data.profiles ?? []);
     } catch {}
   }, []);
@@ -190,10 +333,11 @@ export default function EmailsNoah() {
       const interval = setInterval(() => {
         fetchInbox(token);
         fetchProfiles(token);
-      }, 30000);
+        fetchStatuses();
+      }, 20000);
       return () => clearInterval(interval);
     }
-  }, [step, token, fetchInbox, fetchProfiles]);
+  }, [step, token, fetchInbox, fetchProfiles, fetchStatuses]);
 
   function doLogout() {
     localStorage.removeItem("emailsnoah_token");
@@ -204,12 +348,13 @@ export default function EmailsNoah() {
     setSelectedUser(null);
     setPassword("");
     setEmails([]);
+    setDiscordMessages([]);
     setSelectedEmail(null);
+    setSelectedDm(null);
     setProfiles([]);
   }
 
   const meUser = USERS.find((u) => u.id === meId);
-  const meProfile = profiles.find((p) => p.discord_user_id === meId);
 
   const filteredEmails = emails.filter((e) => {
     if (!searchQuery) return true;
@@ -221,8 +366,21 @@ export default function EmailsNoah() {
     );
   });
 
+  const filteredDms = discordMessages.filter((m) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      m.subject?.toLowerCase().includes(q) ||
+      m.from_name?.toLowerCase().includes(q) ||
+      m.body?.toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <div className="fixed inset-0 overflow-hidden bg-black text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div
+      className="fixed inset-0 overflow-hidden bg-black text-white"
+      style={{ fontFamily: "'Inter', sans-serif" }}
+    >
       <video
         src="/emailsnoah-bg.mp4"
         autoPlay
@@ -230,145 +388,208 @@ export default function EmailsNoah() {
         muted
         playsInline
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ opacity: 0.18, filter: "blur(2px)" }}
+        style={{ opacity: 0.2, filter: "blur(1px)" }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80 pointer-events-none" />
+
+      {/* Spotify floating player — always visible */}
+      <div
+        className="absolute z-50 rounded-xl overflow-hidden shadow-2xl"
+        style={{
+          bottom: 20,
+          right: 20,
+          width: 280,
+          background: "rgba(0,0,0,0.6)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        {!musicPlaying && (
+          <button
+            onClick={startMusic}
+            className="absolute inset-0 z-10 flex items-center justify-center gap-2 text-xs text-zinc-400 hover:text-white transition-colors"
+            style={{ background: "rgba(0,0,0,0.5)" }}
+          >
+            <span style={{ fontSize: 20 }}>▶</span>
+            iniciar música
+          </button>
+        )}
+        <iframe
+          ref={iframeRef}
+          src="https://open.spotify.com/embed/playlist/5oS4loJrmrR72LVIs8dCPB?utm_source=generator&theme=0"
+          width="280"
+          height="80"
+          frameBorder="0"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+          style={{ display: "block" }}
+        />
+      </div>
 
       {step === "login" ? (
         <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-          <div className="w-full max-w-md">
+          {!selectedUser ? (
+            <div className="flex flex-col gap-2.5 w-full max-w-xs">
+              {USERS.map((u) => {
+                const st = discordStatuses[u.id];
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      setSelectedUser(u);
+                      setLoginError("");
+                      setTimeout(() => passwordRef.current?.focus(), 100);
+                    }}
+                    className="flex items-center gap-3.5 p-3.5 rounded-2xl transition-all duration-200 hover:scale-[1.02] group text-left w-full"
+                    style={{
+                      background: "rgba(22,22,28,0.80)",
+                      border: `1px solid rgba(255,255,255,0.07)`,
+                      backdropFilter: "blur(20px)",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = `rgba(30,30,38,0.92)`;
+                      (e.currentTarget as HTMLElement).style.borderColor = `${u.color}40`;
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = `rgba(22,22,28,0.80)`;
+                      (e.currentTarget as HTMLElement).style.borderColor = `rgba(255,255,255,0.07)`;
+                    }}
+                  >
+                    <UserAvatar
+                      user={u}
+                      avatarUrl={st?.avatarUrl}
+                      size={46}
+                      statusDot={st?.status ?? null}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-white text-sm leading-tight">
+                        {u.name}
+                      </div>
+                      <div className="text-xs text-zinc-500 truncate mt-0.5 leading-tight">
+                        {st?.activity
+                          ? st.activity
+                          : st?.status
+                          ? statusLabel(st.status)
+                          : "last seen unknown"}
+                      </div>
+                    </div>
+                    <div
+                      className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: u.color + "22", color: u.color }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+                        <path d="M3 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
             <div
-              className="rounded-2xl p-8"
+              className="w-full max-w-xs rounded-2xl p-6"
               style={{
-                background: "rgba(10,10,10,0.85)",
-                border: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(18,18,22,0.90)",
+                border: "1px solid rgba(255,255,255,0.07)",
                 backdropFilter: "blur(24px)",
               }}
             >
-              <div className="text-center mb-8">
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Mail className="w-6 h-6" style={{ color: "#a78bfa" }} />
-                  <span className="text-xs tracking-[0.3em] uppercase text-zinc-400">faren.com.br</span>
+              <button
+                onClick={() => {
+                  setSelectedUser(null);
+                  setLoginError("");
+                  setPassword("");
+                }}
+                className="flex items-center gap-1.5 text-zinc-500 hover:text-white text-xs mb-5 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                voltar
+              </button>
+
+              <div className="flex items-center gap-3 mb-5">
+                <UserAvatar
+                  user={selectedUser}
+                  avatarUrl={discordStatuses[selectedUser.id]?.avatarUrl}
+                  size={44}
+                  statusDot={discordStatuses[selectedUser.id]?.status ?? null}
+                />
+                <div>
+                  <div className="font-semibold text-white text-sm">{selectedUser.name}</div>
+                  <div className="text-xs text-zinc-500">
+                    {discordStatuses[selectedUser.id]?.activity ||
+                      statusLabel(discordStatuses[selectedUser.id]?.status ?? null)}
+                  </div>
                 </div>
-                <h1 className="text-3xl font-black tracking-tight uppercase mb-1">EMAILSNOAH</h1>
-                <p className="text-zinc-500 text-sm">área privada — acesso restrito</p>
               </div>
 
-              {!selectedUser ? (
-                <>
-                  <p className="text-xs text-zinc-500 uppercase tracking-widest text-center mb-4">quem é você?</p>
-                  <div className="space-y-2">
-                    {USERS.map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => {
-                          setSelectedUser(u);
-                          setLoginError("");
-                          setTimeout(() => passwordRef.current?.focus(), 100);
-                        }}
-                        className="w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200 hover:scale-[1.02]"
-                        style={{
-                          background: "rgba(255,255,255,0.04)",
-                          border: `1px solid ${u.color}30`,
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.background = `${u.color}12`;
-                          (e.currentTarget as HTMLButtonElement).style.border = `1px solid ${u.color}60`;
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)";
-                          (e.currentTarget as HTMLButtonElement).style.border = `1px solid ${u.color}30`;
-                        }}
-                      >
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center font-black text-lg uppercase flex-shrink-0"
-                          style={{ background: u.color + "22", color: u.color, border: `2px solid ${u.color}` }}
-                        >
-                          {u.name[0]}
-                        </div>
-                        <div className="text-left">
-                          <div className="font-bold uppercase tracking-wide" style={{ color: u.color }}>{u.name}</div>
-                          <div className="text-xs text-zinc-500">clique para entrar</div>
-                        </div>
-                        <ChevronRight className="ml-auto w-4 h-4 text-zinc-600" />
-                      </button>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => { setSelectedUser(null); setLoginError(""); setPassword(""); }}
-                    className="flex items-center gap-2 text-zinc-500 hover:text-white text-sm mb-5 transition-colors"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    voltar
-                  </button>
-
-                  <div className="flex items-center gap-3 mb-6 p-3 rounded-xl" style={{ background: `${selectedUser.color}12`, border: `1px solid ${selectedUser.color}30` }}>
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-lg uppercase flex-shrink-0" style={{ background: selectedUser.color + "22", color: selectedUser.color, border: `2px solid ${selectedUser.color}` }}>
-                      {selectedUser.name[0]}
-                    </div>
-                    <div>
-                      <div className="font-bold uppercase tracking-wide" style={{ color: selectedUser.color }}>{selectedUser.name}</div>
-                      <div className="text-xs text-zinc-500">insira sua senha</div>
-                    </div>
-                  </div>
-
-                  {loginError && (
-                    <div className="mb-4 p-3 rounded-lg text-sm text-red-400" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
-                      {loginError}
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <input
-                      ref={passwordRef}
-                      type="password"
-                      placeholder="senha"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && doLogin()}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-zinc-600 focus:outline-none focus:border-white/30 transition-colors"
-                    />
-                    <button
-                      onClick={doLogin}
-                      disabled={loginLoading || !password}
-                      className="w-full py-3 rounded-xl font-bold uppercase tracking-widest text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                      style={{ background: selectedUser.color, color: "#000" }}
-                    >
-                      {loginLoading ? "entrando..." : "entrar"}
-                    </button>
-                  </div>
-
-                  <p className="text-center text-zinc-600 text-xs mt-5">
-                    sem senha? use <span className="text-zinc-400 font-mono">/senha</span> no Discord
-                  </p>
-                </>
+              {loginError && (
+                <div
+                  className="mb-4 p-2.5 rounded-lg text-xs text-red-400"
+                  style={{
+                    background: "rgba(239,68,68,0.08)",
+                    border: "1px solid rgba(239,68,68,0.15)",
+                  }}
+                >
+                  {loginError}
+                </div>
               )}
+
+              <div className="space-y-2.5">
+                <input
+                  ref={passwordRef}
+                  type="password"
+                  placeholder="senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && doLogin()}
+                  className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-white/5 border border-white/8 text-white placeholder-zinc-600 focus:outline-none focus:border-white/25 transition-colors"
+                />
+                <button
+                  onClick={doLogin}
+                  disabled={loginLoading || !password}
+                  className="w-full py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ background: selectedUser.color, color: "#000" }}
+                >
+                  {loginLoading ? "entrando..." : "entrar"}
+                </button>
+              </div>
+
+              <p className="text-center text-zinc-700 text-xs mt-4">
+                sem senha? use{" "}
+                <span className="text-zinc-500 font-mono">/senha</span> no Discord
+              </p>
             </div>
-          </div>
+          )}
         </div>
       ) : (
         <div className="relative z-10 flex flex-col h-screen">
           <header
             className="flex items-center gap-3 px-4 py-2 flex-shrink-0"
-            style={{ background: "rgba(8,8,8,0.92)", borderBottom: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(20px)" }}
+            style={{
+              background: "rgba(8,8,8,0.92)",
+              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              backdropFilter: "blur(20px)",
+            }}
           >
             <div className="flex items-center gap-2">
-              <Mail className="w-5 h-5" style={{ color: "#a78bfa" }} />
-              <span className="font-black text-sm uppercase tracking-widest">EMAILSNOAH</span>
+              <Mail className="w-4 h-4" style={{ color: "#a78bfa" }} />
+              <span className="font-black text-xs uppercase tracking-widest">EMAILSNOAH</span>
             </div>
 
             {meUser && (
-              <div className="flex items-center gap-2 ml-4">
-                <div
-                  className="w-7 h-7 rounded-full flex items-center justify-center font-black text-sm uppercase"
-                  style={{ background: meUser.color + "22", color: meUser.color, border: `1.5px solid ${meUser.color}` }}
+              <div className="flex items-center gap-2 ml-3">
+                <UserAvatar
+                  user={meUser}
+                  avatarUrl={discordStatuses[meId]?.avatarUrl}
+                  size={26}
+                  statusDot={discordStatuses[meId]?.status ?? null}
+                />
+                <span
+                  className="text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: meUser.color }}
                 >
-                  {meUser.name[0]}
-                </div>
-                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: meUser.color }}>{meName}</span>
+                  {meName}
+                </span>
               </div>
             )}
 
@@ -393,35 +614,44 @@ export default function EmailsNoah() {
           <div className="flex flex-1 overflow-hidden">
             <aside
               className="flex flex-col w-72 flex-shrink-0 overflow-hidden"
-              style={{ background: "rgba(6,6,6,0.88)", borderRight: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(20px)" }}
+              style={{
+                background: "rgba(6,6,6,0.88)",
+                borderRight: "1px solid rgba(255,255,255,0.06)",
+                backdropFilter: "blur(20px)",
+              }}
             >
               <div className="flex border-b border-white/5 flex-shrink-0">
-                <button
-                  onClick={() => setActiveTab("inbox")}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs uppercase tracking-wider font-bold transition-colors"
-                  style={{ color: activeTab === "inbox" ? "#a78bfa" : "#555", borderBottom: activeTab === "inbox" ? "2px solid #a78bfa" : "2px solid transparent" }}
-                >
-                  <Inbox className="w-3.5 h-3.5" />
-                  inbox
-                </button>
-                <button
-                  onClick={() => setActiveTab("profiles")}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs uppercase tracking-wider font-bold transition-colors"
-                  style={{ color: activeTab === "profiles" ? "#a78bfa" : "#555", borderBottom: activeTab === "profiles" ? "2px solid #a78bfa" : "2px solid transparent" }}
-                >
-                  <Users className="w-3.5 h-3.5" />
-                  perfis
-                </button>
+                {(
+                  [
+                    { key: "inbox", icon: Inbox, label: "inbox" },
+                    { key: "mensagens", icon: MessageSquare, label: "msgs" },
+                    { key: "perfis", icon: Users, label: "perfis" },
+                  ] as const
+                ).map(({ key, icon: Icon, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setActiveTab(key)}
+                    className="flex-1 flex items-center justify-center gap-1 py-2.5 text-xs uppercase tracking-wider font-bold transition-colors"
+                    style={{
+                      color: activeTab === key ? "#a78bfa" : "#555",
+                      borderBottom:
+                        activeTab === key ? "2px solid #a78bfa" : "2px solid transparent",
+                    }}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {label}
+                  </button>
+                ))}
               </div>
 
-              {activeTab === "inbox" ? (
+              {activeTab === "inbox" || activeTab === "mensagens" ? (
                 <>
                   <div className="p-2 flex-shrink-0">
                     <div className="relative">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
                       <input
                         type="text"
-                        placeholder="buscar emails..."
+                        placeholder="buscar..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full pl-8 pr-3 py-2 rounded-lg text-xs bg-white/5 border border-white/8 text-white placeholder-zinc-600 focus:outline-none focus:border-white/20 transition-colors"
@@ -429,11 +659,19 @@ export default function EmailsNoah() {
                     </div>
                   </div>
 
-                  {addresses.length > 0 && (
+                  {activeTab === "inbox" && addresses.length > 0 && (
                     <div className="px-3 pb-2 flex-shrink-0">
                       <div className="flex flex-wrap gap-1">
                         {addresses.map((addr) => (
-                          <span key={addr} className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(167,139,250,0.12)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.2)" }}>
+                          <span
+                            key={addr}
+                            className="text-xs px-2 py-0.5 rounded-full"
+                            style={{
+                              background: "rgba(167,139,250,0.12)",
+                              color: "#a78bfa",
+                              border: "1px solid rgba(167,139,250,0.2)",
+                            }}
+                          >
                             {addr.split("@")[0]}
                           </span>
                         ))}
@@ -442,111 +680,239 @@ export default function EmailsNoah() {
                   )}
 
                   <div className="flex-1 overflow-y-auto">
-                    {inboxLoading && emails.length === 0 ? (
-                      <div className="flex items-center justify-center h-32 text-zinc-600 text-sm">carregando...</div>
-                    ) : filteredEmails.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-32 text-zinc-600 text-sm gap-2">
-                        <Inbox className="w-6 h-6 opacity-40" />
-                        {emails.length === 0 ? "inbox vazio" : "nenhum resultado"}
-                      </div>
-                    ) : (
-                      filteredEmails.map((email) => (
-                        <button
-                          key={email.id}
-                          onClick={() => setSelectedEmail(email)}
-                          className="w-full text-left px-3 py-3 border-b transition-all duration-150"
-                          style={{
-                            borderColor: "rgba(255,255,255,0.05)",
-                            background: selectedEmail?.id === email.id
-                              ? "rgba(167,139,250,0.08)"
-                              : "transparent",
-                            borderLeft: selectedEmail?.id === email.id ? "2px solid #a78bfa" : "2px solid transparent",
-                          }}
-                        >
-                          <div className="flex items-start justify-between gap-2 mb-0.5">
-                            <span className="text-xs font-semibold text-zinc-300 truncate flex-1">
-                              {email.from_addr?.split("<")[0]?.trim() || email.from_addr}
-                            </span>
-                            <span className="text-xs text-zinc-600 flex-shrink-0">{formatDate(email.received_at)}</span>
-                          </div>
-                          <div className="text-xs font-bold text-white truncate mb-0.5">
-                            {email.subject || "(sem assunto)"}
-                          </div>
-                          <div className="flex items-center gap-2">
+                    {activeTab === "inbox" ? (
+                      inboxLoading && emails.length === 0 ? (
+                        <div className="flex items-center justify-center h-32 text-zinc-600 text-sm">
+                          carregando...
+                        </div>
+                      ) : filteredEmails.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-32 text-zinc-600 text-sm gap-2">
+                          <Inbox className="w-6 h-6 opacity-40" />
+                          {emails.length === 0 ? "inbox vazio" : "nenhum resultado"}
+                        </div>
+                      ) : (
+                        filteredEmails.map((email) => (
+                          <button
+                            key={email.id}
+                            onClick={() => {
+                              setSelectedEmail(email);
+                              setSelectedDm(null);
+                            }}
+                            className="w-full text-left px-3 py-3 border-b transition-all duration-150"
+                            style={{
+                              borderColor: "rgba(255,255,255,0.05)",
+                              background:
+                                selectedEmail?.id === email.id
+                                  ? "rgba(167,139,250,0.08)"
+                                  : "transparent",
+                              borderLeft:
+                                selectedEmail?.id === email.id
+                                  ? "2px solid #a78bfa"
+                                  : "2px solid transparent",
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-0.5">
+                              <span className="text-xs font-semibold text-zinc-300 truncate flex-1">
+                                {email.from_addr?.split("<")[0]?.trim() || email.from_addr}
+                              </span>
+                              <span className="text-xs text-zinc-600 flex-shrink-0">
+                                {formatDate(email.received_at)}
+                              </span>
+                            </div>
+                            <div className="text-xs font-bold text-white truncate mb-0.5">
+                              {email.subject || "(sem assunto)"}
+                            </div>
                             {email.code && (
-                              <span className="text-xs px-1.5 py-0.5 rounded font-mono font-bold" style={{ background: "rgba(35,209,139,0.15)", color: "#23d18b" }}>
+                              <span
+                                className="text-xs px-1.5 py-0.5 rounded font-mono font-bold"
+                                style={{
+                                  background: "rgba(35,209,139,0.15)",
+                                  color: "#23d18b",
+                                }}
+                              >
                                 🔑 {email.code}
                               </span>
                             )}
-                            <span className="text-xs text-zinc-600 truncate">{email.address}</span>
-                          </div>
-                        </button>
-                      ))
+                          </button>
+                        ))
+                      )
+                    ) : filteredDms.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-32 text-zinc-600 text-sm gap-2">
+                        <MessageSquare className="w-6 h-6 opacity-40" />
+                        {discordMessages.length === 0 ? "nenhuma mensagem" : "nenhum resultado"}
+                      </div>
+                    ) : (
+                      filteredDms.map((dm) => {
+                        const fromUser = USERS.find((u) => u.id === dm.from_discord_id);
+                        return (
+                          <button
+                            key={dm.id}
+                            onClick={() => {
+                              setSelectedDm(dm);
+                              setSelectedEmail(null);
+                            }}
+                            className="w-full text-left px-3 py-3 border-b transition-all duration-150"
+                            style={{
+                              borderColor: "rgba(255,255,255,0.05)",
+                              background:
+                                selectedDm?.id === dm.id
+                                  ? "rgba(88,101,242,0.08)"
+                                  : "transparent",
+                              borderLeft:
+                                selectedDm?.id === dm.id
+                                  ? "2px solid #5865f2"
+                                  : "2px solid transparent",
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-0.5">
+                              <span
+                                className="text-xs font-semibold truncate flex-1"
+                                style={{ color: fromUser?.color ?? "#a78bfa" }}
+                              >
+                                {dm.from_name}
+                              </span>
+                              <span className="text-xs text-zinc-600 flex-shrink-0">
+                                {formatDate(dm.sent_at)}
+                              </span>
+                            </div>
+                            <div className="text-xs font-bold text-white truncate mb-0.5">
+                              {dm.subject}
+                            </div>
+                            <div className="text-xs text-zinc-600 truncate">{dm.body}</div>
+                          </button>
+                        );
+                      })
                     )}
                   </div>
                 </>
               ) : (
                 <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                  {profiles.length === 0 ? (
-                    <div className="flex items-center justify-center h-32 text-zinc-600 text-sm">carregando perfis...</div>
-                  ) : (
-                    USERS.map((u) => {
-                      const p = profiles.find((pr) => pr.discord_user_id === u.id);
-                      const avatar = p?.discord_avatar_url || p?.avatar_url;
-                      return (
-                        <a
-                          key={u.id}
-                          href={p ? `/${p.username}` : "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-white/5 block"
-                          style={{ border: `1px solid ${u.color}20` }}
-                        >
-                          <div className="relative flex-shrink-0">
-                            {avatar ? (
-                              <img src={avatar} alt={u.name} className="w-10 h-10 rounded-full object-cover" style={{ border: `2px solid ${u.color}` }} />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-lg uppercase" style={{ background: u.color + "22", color: u.color, border: `2px solid ${u.color}` }}>
-                                {u.name[0]}
-                              </div>
-                            )}
-                            {p?.discord_status && (
-                              <span
-                                className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-black"
-                                style={{ background: statusColor(p.discord_status) }}
-                                title={statusLabel(p.discord_status)}
-                              />
-                            )}
+                  {USERS.map((u) => {
+                    const p = profiles.find((pr) => pr.discord_user_id === u.id);
+                    const st = discordStatuses[u.id];
+                    const avatarUrl =
+                      st?.avatarUrl ||
+                      p?.discord_avatar_url ||
+                      p?.avatar_url ||
+                      undefined;
+                    return (
+                      <a
+                        key={u.id}
+                        href={p ? `/${p.username}` : "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-white/5"
+                        style={{ border: `1px solid ${u.color}18` }}
+                      >
+                        <UserAvatar
+                          user={u}
+                          avatarUrl={avatarUrl}
+                          size={40}
+                          statusDot={st?.status ?? p?.discord_status ?? null}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className="font-bold text-sm uppercase tracking-wide"
+                            style={{ color: u.color }}
+                          >
+                            {u.name}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-sm uppercase tracking-wide" style={{ color: u.color }}>{u.name}</span>
-                              {p?.discord_nitro && <span className="text-xs px-1 rounded" style={{ background: "rgba(88,101,242,0.25)", color: "#7289da" }}>Nitro</span>}
-                            </div>
-                            <div className="text-xs text-zinc-500 truncate">
-                              {p?.discord_activity
+                          <div className="text-xs text-zinc-500 truncate">
+                            {st?.activity ||
+                              (p?.discord_activity
                                 ? (() => {
-                                    try { const act = JSON.parse(p.discord_activity); return act?.name || p.discord_status || "—"; } catch { return p.discord_status || "—"; }
+                                    try {
+                                      const act = JSON.parse(p.discord_activity!);
+                                      return act?.name || statusLabel(p.discord_status ?? null);
+                                    } catch {
+                                      return statusLabel(p?.discord_status ?? null);
+                                    }
                                   })()
-                                : statusLabel(p?.discord_status ?? null)}
-                            </div>
+                                : statusLabel(st?.status ?? p?.discord_status ?? null))}
                           </div>
-                          <ExternalLink className="w-3.5 h-3.5 text-zinc-700 flex-shrink-0" />
-                        </a>
-                      );
-                    })
-                  )}
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 text-zinc-700 flex-shrink-0" />
+                      </a>
+                    );
+                  })}
                 </div>
               )}
             </aside>
 
             <main className="flex-1 overflow-hidden flex flex-col">
-              {!selectedEmail ? (
+              {selectedDm ? (
+                <div className="flex-1 overflow-y-auto p-6">
+                  <button
+                    onClick={() => setSelectedDm(null)}
+                    className="flex items-center gap-2 text-zinc-500 hover:text-white text-sm mb-5 transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    voltar
+                  </button>
+                  <div
+                    className="rounded-2xl overflow-hidden"
+                    style={{
+                      background: "rgba(10,10,10,0.80)",
+                      border: "1px solid rgba(88,101,242,0.15)",
+                      backdropFilter: "blur(20px)",
+                    }}
+                  >
+                    <div
+                      className="px-6 py-5"
+                      style={{
+                        borderBottom: "1px solid rgba(255,255,255,0.06)",
+                        background: "rgba(88,101,242,0.05)",
+                      }}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        {(() => {
+                          const fromUser = USERS.find((u) => u.id === selectedDm.from_discord_id);
+                          return fromUser ? (
+                            <UserAvatar
+                              user={fromUser}
+                              avatarUrl={discordStatuses[fromUser.id]?.avatarUrl}
+                              size={36}
+                            />
+                          ) : null;
+                        })()}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="font-bold text-sm"
+                              style={{
+                                color:
+                                  USERS.find((u) => u.id === selectedDm.from_discord_id)?.color ??
+                                  "#a78bfa",
+                              }}
+                            >
+                              {selectedDm.from_name}
+                            </span>
+                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "rgba(88,101,242,0.2)", color: "#7289da" }}>
+                              Discord
+                            </span>
+                          </div>
+                          <div className="text-xs text-zinc-500">
+                            para {selectedDm.to_name} · {formatFullDate(selectedDm.sent_at)}
+                          </div>
+                        </div>
+                      </div>
+                      <h2 className="text-xl font-black leading-tight">{selectedDm.subject}</h2>
+                    </div>
+                    <div className="px-6 py-5">
+                      <p className="text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap">
+                        {selectedDm.body}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : !selectedEmail ? (
                 <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-3">
                   <Mail className="w-14 h-14 opacity-20" />
-                  <p className="text-sm uppercase tracking-widest">selecione um email para ler</p>
-                  {emails.length > 0 && (
-                    <p className="text-xs text-zinc-700">{emails.length} email{emails.length !== 1 ? "s" : ""} no inbox</p>
+                  <p className="text-sm uppercase tracking-widest">selecione um item para ler</p>
+                  {(emails.length > 0 || discordMessages.length > 0) && (
+                    <p className="text-xs text-zinc-700">
+                      {emails.length} email{emails.length !== 1 ? "s" : ""} · {discordMessages.length} mensagem{discordMessages.length !== 1 ? "ns" : ""}
+                    </p>
                   )}
                 </div>
               ) : (
@@ -567,7 +933,10 @@ export default function EmailsNoah() {
                       backdropFilter: "blur(20px)",
                     }}
                   >
-                    <div className="px-6 py-5" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                    <div
+                      className="px-6 py-5"
+                      style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+                    >
                       <h2 className="text-xl font-black mb-3 leading-tight">
                         {selectedEmail.subject || "(sem assunto)"}
                       </h2>
@@ -575,10 +944,18 @@ export default function EmailsNoah() {
                       {selectedEmail.code && (
                         <div
                           className="inline-flex items-center gap-2 px-3 py-2 rounded-lg mb-3"
-                          style={{ background: "rgba(35,209,139,0.12)", border: "1px solid rgba(35,209,139,0.25)" }}
+                          style={{
+                            background: "rgba(35,209,139,0.12)",
+                            border: "1px solid rgba(35,209,139,0.25)",
+                          }}
                         >
-                          <span className="text-xs text-zinc-400 uppercase tracking-wider">Código:</span>
-                          <span className="font-mono font-black text-lg tracking-widest" style={{ color: "#23d18b" }}>
+                          <span className="text-xs text-zinc-400 uppercase tracking-wider">
+                            Código:
+                          </span>
+                          <span
+                            className="font-mono font-black text-lg tracking-widest"
+                            style={{ color: "#23d18b" }}
+                          >
                             {selectedEmail.code}
                           </span>
                         </div>
@@ -586,16 +963,24 @@ export default function EmailsNoah() {
 
                       <div className="grid grid-cols-1 gap-1.5 text-sm">
                         <div className="flex items-center gap-2">
-                          <span className="text-zinc-600 text-xs w-12 uppercase tracking-wider flex-shrink-0">De</span>
+                          <span className="text-zinc-600 text-xs w-12 uppercase tracking-wider flex-shrink-0">
+                            De
+                          </span>
                           <span className="text-zinc-200">{selectedEmail.from_addr}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-zinc-600 text-xs w-12 uppercase tracking-wider flex-shrink-0">Para</span>
+                          <span className="text-zinc-600 text-xs w-12 uppercase tracking-wider flex-shrink-0">
+                            Para
+                          </span>
                           <span className="text-zinc-200">{selectedEmail.address}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-zinc-600 text-xs w-12 uppercase tracking-wider flex-shrink-0">Data</span>
-                          <span className="text-zinc-400 text-xs">{formatFullDate(selectedEmail.received_at)}</span>
+                          <span className="text-zinc-600 text-xs w-12 uppercase tracking-wider flex-shrink-0">
+                            Data
+                          </span>
+                          <span className="text-zinc-400 text-xs">
+                            {formatFullDate(selectedEmail.received_at)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -603,43 +988,45 @@ export default function EmailsNoah() {
                     {(() => {
                       const body = cleanBody(selectedEmail.body ?? "");
                       const urls = extractUrls(body);
-                      const bodyNoUrls = body.replace(/https?:\/\/[^\s]+/g, "").replace(/\n{3,}/g, "\n\n").trim();
+                      const bodyNoUrls = body
+                        .replace(/https?:\/\/[^\s]+/g, "")
+                        .replace(/\n{3,}/g, "\n\n")
+                        .trim();
 
                       return (
                         <div className="px-6 py-5 space-y-4">
                           {urls.length > 0 && (
-                            <div className="p-3 rounded-xl space-y-1.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                              <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Links</p>
+                            <div
+                              className="p-3 rounded-xl space-y-1.5"
+                              style={{
+                                background: "rgba(255,255,255,0.03)",
+                                border: "1px solid rgba(255,255,255,0.06)",
+                              }}
+                            >
+                              <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">
+                                Links
+                              </p>
                               {urls.map((url, i) => (
                                 <a
                                   key={i}
                                   href={url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center gap-2 text-sm hover:underline break-all"
-                                  style={{ color: "#a78bfa" }}
+                                  className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300 transition-colors truncate"
                                 >
-                                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
-                                  {url.length > 80 ? url.slice(0, 80) + "..." : url}
+                                  <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                  {url}
                                 </a>
                               ))}
                             </div>
                           )}
-
                           {bodyNoUrls && (
-                            <div>
-                              <p className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Conteúdo</p>
-                              <pre
-                                className="text-sm text-zinc-300 whitespace-pre-wrap break-words leading-relaxed"
-                                style={{ fontFamily: "inherit" }}
-                              >
-                                {bodyNoUrls}
-                              </pre>
-                            </div>
-                          )}
-
-                          {!bodyNoUrls && !urls.length && (
-                            <p className="text-zinc-600 text-sm italic">corpo do email vazio.</p>
+                            <pre
+                              className="text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap font-sans"
+                              style={{ wordBreak: "break-word" }}
+                            >
+                              {bodyNoUrls}
+                            </pre>
                           )}
                         </div>
                       );
@@ -651,21 +1038,6 @@ export default function EmailsNoah() {
           </div>
         </div>
       )}
-
-      <div
-        className="fixed bottom-4 right-4 z-20 rounded-xl overflow-hidden shadow-2xl"
-        style={{ border: "1px solid rgba(255,255,255,0.08)", width: 260 }}
-      >
-        <iframe
-          src="https://open.spotify.com/embed/playlist/5oS4loJrmrR72LVIs8dCPB?utm_source=generator&theme=0"
-          width="260"
-          height="80"
-          frameBorder="0"
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          loading="lazy"
-          style={{ display: "block" }}
-        />
-      </div>
     </div>
   );
 }

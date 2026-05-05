@@ -2,6 +2,7 @@ import { REST, Routes } from "discord.js";
 import { kCommand } from "./commands/k.js";
 import { idCommand } from "./commands/id.js";
 import { senhaCommand } from "./commands/senha.js";
+import { emailCommand } from "./commands/email.js";
 
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -15,9 +16,17 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
 async function registerCommands(): Promise<void> {
   console.log("[register] registrando comandos slash globalmente...");
   try {
-    const commands = [kCommand.toJSON(), idCommand.toJSON(), senhaCommand.toJSON()];
+    const commands = [
+      kCommand.toJSON(),
+      idCommand.toJSON(),
+      senhaCommand.toJSON(),
+      emailCommand.toJSON(),
+    ];
     await rest.put(Routes.applicationCommands(CLIENT_ID!), { body: commands });
-    console.log("[register] comandos registrados com sucesso:", commands.map((c) => c.name).join(", "));
+    console.log(
+      "[register] comandos registrados com sucesso:",
+      commands.map((c) => c.name).join(", ")
+    );
   } catch (err) {
     console.error("[register] erro:", err);
     process.exit(1);
