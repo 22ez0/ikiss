@@ -9,7 +9,6 @@ import { registerMessageCollector } from "./handlers/collectors.js";
 import { initDb, loadAllUsers } from "./db.js";
 import { loadSessionFromDb } from "./store.js";
 import { activateRpc } from "./selfbot.js";
-import { startKeepalive } from "./keepalive.js";
 
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 if (!BOT_TOKEN) throw new Error("DISCORD_BOT_TOKEN não definido");
@@ -69,8 +68,6 @@ client.once("ready", async () => {
     console.warn("[db] erro na inicialização:", e?.message);
   }
 
-  // manter Render ativo (free tier dorme após 15min sem requests)
-  startKeepalive();
 });
 
 export async function startBot(): Promise<void> {
