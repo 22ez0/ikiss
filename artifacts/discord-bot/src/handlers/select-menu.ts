@@ -302,6 +302,36 @@ export async function handleEmailPanelSelect(interaction: StringSelectMenuIntera
   }
 }
 
+function cleanMime(raw: string): string {
+  if (!raw) return "";
+  // strip MIME boundary sections
+  if (/^--[a-f0-9]{10}/m.test(raw)) {
+    const lines = raw.split("\n");
+    const out: string[] = [];
+    let inHeaders = false;
+    for (const line of lines) {
+      if (/^--[a-f0-9]/.test(line)) { inHeaders = true; continue; }
+      if (inHeaders && line.trim() === "") { inHeaders = false; continue; }
+      if (inHeaders) continue;
+      out.push(line);
+    }
+    raw = out.join("\n").trim();
+  }
+  // decode quoted-printable
+  raw = raw.replace(/=\r?\n/g, "").replace(/=([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  // strip leftover MIME headers block at start
+  const hEnd = raw.indexOf("\n\n");
+  if (hEnd !== -1 && /^(Content-Type|Content-Transfer|Mime-Version):/im.test(raw.slice(0, hEnd))) {
+    raw = raw.slice(hEnd + 2);
+  }
+  return raw.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function extractUrls(text: string): string[] {
+  const re = /https?:\/\/[^\s<>")\]]+/g;
+  return [...new Set(text.match(re) ?? [])].slice(0, 5);
+}
+
 export async function handleEmailInboxSelect(interaction: StringSelectMenuInteraction): Promise<void> {
   const userId = interaction.user.id;
 
@@ -327,28 +357,43 @@ export async function handleEmailInboxSelect(interaction: StringSelectMenuIntera
 
   const when = new Date(email.received_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
   const hasCode = Boolean(email.code);
+  const body = cleanMime(email.body ?? "");
+  const urls = extractUrls(body);
+
+  // descrição principal: código em destaque OU preview do corpo
+  let description = "";
+  if (hasCode) {
+    description = `### 🔑 Código de verificação\n\`\`\`\n${email.code}\n\`\`\``;
+  }
 
   const embed = new EmbedBuilder()
     .setColor(hasCode ? 0x00e676 : 0x5865f2)
     .setTitle((email.subject || "(sem assunto)").slice(0, 256))
     .addFields(
-      { name: "✉️ De", value: email.from_addr.slice(0, 1024), inline: true },
-      { name: "📬 Para", value: email.address.slice(0, 1024), inline: true },
-      { name: "🕐 Recebido", value: when, inline: false },
+      { name: "✉️ De",      value: email.from_addr.slice(0, 256), inline: true  },
+      { name: "📬 Para",    value: email.address.slice(0, 256),   inline: true  },
+      { name: "🕐 Recebido", value: when,                          inline: false },
     );
 
-  if (hasCode) {
-    embed.setDescription(`## 🔑 Código de verificação\n\`\`\`\n${email.code}\n\`\`\``);
+  if (description) embed.setDescription(description);
+
+  // links clicáveis
+  if (urls.length > 0) {
+    const linkField = urls.map((u, i) => `[🔗 Link ${i + 1}](${u})`).join("\n");
+    embed.addFields({ name: "🌐 Links encontrados", value: linkField });
   }
 
-  const files: AttachmentBuilder[] = [];
-  const rawBody = (email.body ?? "").trim();
-  if (rawBody) {
-    const cleanBody = rawBody.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n");
-    const safeSubject = (email.subject || "email").replace(/[^a-zA-Z0-9\-_\u00C0-\u017F ]/g, "").slice(0, 40).trim() || "email";
-    const buf = Buffer.from(cleanBody, "utf8");
-    files.push(new AttachmentBuilder(buf, { name: `${safeSubject}.txt`, description: email.subject || "conteúdo do email" }));
+  // preview do corpo (sem URLs para não duplicar)
+  if (body) {
+    const bodyNoUrls = body.replace(/https?:\/\/[^\s]+/g, "").replace(/\n{3,}/g, "\n\n").trim();
+    if (bodyNoUrls.length > 0) {
+      const preview = bodyNoUrls.slice(0, 900);
+      embed.addFields({
+        name: "📄 Conteúdo",
+        value: preview + (bodyNoUrls.length > 900 ? "\n…" : ""),
+      });
+    }
   }
 
-  await interaction.editReply({ embeds: [embed], files });
+  await interaction.editReply({ embeds: [embed] });
 }
