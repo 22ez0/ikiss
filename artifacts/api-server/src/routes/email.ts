@@ -66,6 +66,52 @@ function extractCode(text: string): string | null {
   return null;
 }
 
+function decodeQuotedPrintable(str: string): string {
+  return str
+    .replace(/=\r?\n/g, "")
+    .replace(/=([0-9A-Fa-f]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+}
+
+function parseMimeBody(raw: string): string {
+  if (!raw) return "";
+  // multipart — encontra boundary
+  const boundaryMatch = raw.match(/^--([^\r\n]+)/m);
+  if (boundaryMatch) {
+    const sep = "--" + boundaryMatch[1].trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const parts = raw.split(new RegExp(sep + "-{0,2}"));
+    let plain = "";
+    let html = "";
+    for (const part of parts) {
+      const t = part.trim();
+      if (!t || t === "--") continue;
+      const hEnd = t.indexOf("\n\n");
+      if (hEnd === -1) continue;
+      const hdrs = t.slice(0, hEnd);
+      const body = t.slice(hEnd + 2);
+      const isQP  = /Content-Transfer-Encoding:\s*quoted-printable/i.test(hdrs);
+      const isB64 = /Content-Transfer-Encoding:\s*base64/i.test(hdrs);
+      let decoded = body;
+      if (isQP)  decoded = decodeQuotedPrintable(body);
+      else if (isB64) { try { decoded = Buffer.from(body.replace(/\s/g, ""), "base64").toString("utf8"); } catch {} }
+      if (/Content-Type:\s*text\/plain/i.test(hdrs) && !plain) plain = decoded.trim();
+      if (/Content-Type:\s*text\/html/i.test(hdrs)  && !html)  html  = decoded.trim();
+    }
+    return plain || htmlToText(html) || raw;
+  }
+  // single part — strip headers se existirem
+  const hEnd = raw.indexOf("\n\n");
+  if (hEnd !== -1) {
+    const hdrs = raw.slice(0, hEnd);
+    const body = raw.slice(hEnd + 2);
+    if (/Content-Transfer-Encoding:\s*quoted-printable/i.test(hdrs))
+      return decodeQuotedPrintable(body).trim();
+    if (/Content-Transfer-Encoding:\s*base64/i.test(hdrs))
+      try { return Buffer.from(body.replace(/\s/g, ""), "base64").toString("utf8").trim(); } catch {}
+    if (/Content-Type:/i.test(hdrs)) return body.trim();
+  }
+  return raw;
+}
+
 function htmlToText(html: string): string {
   return html
     .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -118,7 +164,7 @@ router.post("/email/inbound", async (req: Request, res: Response): Promise<void>
     const subject = body.subject ?? "(sem assunto)";
     const rawText = body.text ?? body["body-plain"] ?? "";
     const rawHtml = body.html ?? body["body-html"] ?? "";
-    const text = rawText || htmlToText(rawHtml);
+    const text = parseMimeBody(rawText) || htmlToText(rawHtml);
     const preview = text.slice(0, 800).trim();
     const code = extractCode(text) ?? extractCode(subject) ?? null;
 
