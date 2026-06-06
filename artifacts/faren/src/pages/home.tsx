@@ -388,13 +388,11 @@ export default function Home() {
             {t.hero.tag}
           </motion.p>
 
-          <div className="overflow-hidden">
-            <motion.div initial={{ y: 120, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
-              <h1 className="display-heading text-white leading-none" style={{ textShadow: '0 0 40px rgba(0,0,0,1), 0 0 80px rgba(0,0,0,0.9), 2px 2px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.6)' }}>{t.hero.h1a}</h1>
-              <h1 className="display-heading text-white leading-none" style={{ textShadow: '0 0 40px rgba(0,0,0,1), 0 0 80px rgba(0,0,0,0.9), 2px 2px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.6)' }}>{t.hero.h1b}</h1>
-              <h1 className="display-heading text-white leading-none" style={{ textShadow: '0 0 40px rgba(0,0,0,1), 0 0 80px rgba(0,0,0,0.9), 2px 2px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.6)' }}>{t.hero.h1c}</h1>
-            </motion.div>
-          </div>
+          <motion.div initial={{ y: 120, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
+            <h1 className="display-heading text-white leading-none" style={{ textShadow: '0 0 40px rgba(0,0,0,1), 0 0 80px rgba(0,0,0,0.9), 2px 2px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.6)' }}>{t.hero.h1a}</h1>
+            <h1 className="display-heading text-white leading-none" style={{ textShadow: '0 0 40px rgba(0,0,0,1), 0 0 80px rgba(0,0,0,0.9), 2px 2px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.6)' }}>{t.hero.h1b}</h1>
+            <h1 className="display-heading text-white leading-none" style={{ textShadow: '0 0 40px rgba(0,0,0,1), 0 0 80px rgba(0,0,0,0.9), 2px 2px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.6)' }}>{t.hero.h1c}</h1>
+          </motion.div>
 
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.5 }} className="mt-10 max-w-md text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)', textShadow: '0 1px 12px rgba(0,0,0,0.9), 0 0 30px rgba(0,0,0,0.7)' }}>
             {t.hero.sub}
