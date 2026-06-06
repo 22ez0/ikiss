@@ -550,20 +550,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── FEATURES ROW ──────────────────────────────────────── */}
-      <section className="py-16 px-6 md:px-12 pb-32">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-px bg-white/5">
-            {t.features.map((feat, i) => (
-              <motion.div key={feat.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }} className="p-8 bg-background hover:bg-white/[0.03] transition-colors duration-300">
-                <p className="label-caps mb-3">{feat.stat}</p>
-                <h3 className="text-lg font-bold tracking-tight mb-2">{feat.title}</h3>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{feat.sub}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── CTA ───────────────────────────────────────────────── */}
       <section className="py-32 px-6 relative overflow-hidden border-t border-white/5">
