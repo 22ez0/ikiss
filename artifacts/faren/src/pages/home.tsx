@@ -18,7 +18,6 @@ import {
 
 const RESERVED_USERNAMES = new Set(['keefaren','admin','administrator','api','dashboard','login','register','profile','settings','support','root','ikiss','keef','null','comunidade','community','explore','feed']);
 import heroVideo from "@assets/pinterest_1117033513847707049_1780756845415.mp4";
-import heroAudioSrc from "@assets/No_One_Noticed_spotdown.org_(1)_1780758427763.mp3";
 
 const PT = {
   nav: { dashboard: "Dashboard", discover: "Descobrir", login: "Entrar", cta: "Criar Seu Link", myProfile: "Meu perfil", logout: "Sair" },
@@ -58,10 +57,6 @@ export default function Home() {
   const [audioActivated, setAudioActivated] = useState(false);
   const heroVideoARef = useRef<HTMLVideoElement>(null);
   const heroVideoBRef = useRef<HTMLVideoElement>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const audioBufferRef = useRef<AudioBuffer | null>(null);
-  const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const audioGainRef = useRef<GainNode | null>(null);
   const [muted, setMuted] = useState(false);
   const [showB, setShowB] = useState(false);
   const [claimUsername, setClaimUsername] = useState('');
@@ -156,69 +151,23 @@ export default function Home() {
     };
   }, []);
 
-  // Audio: pre-load buffer but only start playing after user double-clicks the button.
-  const mutedRef = useRef(muted);
-  useEffect(() => { mutedRef.current = muted; }, [muted]);
-
-  // Pre-load audio buffer on mount (silent — does not play)
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const Ctx: typeof AudioContext = (window.AudioContext || (window as any).webkitAudioContext);
-        const ctx = new Ctx();
-        audioCtxRef.current = ctx;
-        const gain = ctx.createGain();
-        gain.gain.value = 0;
-        gain.connect(ctx.destination);
-        audioGainRef.current = gain;
-        const res = await fetch(heroAudioSrc);
-        const arrBuf = await res.arrayBuffer();
-        const decoded = await ctx.decodeAudioData(arrBuf);
-        if (cancelled) { ctx.close(); return; }
-        audioBufferRef.current = decoded;
-      } catch (e) {
-        console.warn("Audio preload failed:", e);
-      }
-    })();
-    return () => {
-      cancelled = true;
-      try { audioSourceRef.current?.stop(); } catch {}
-      audioSourceRef.current?.disconnect();
-      audioCtxRef.current?.close();
-    };
-  }, []);
-
-  // Activate audio on first double-click; subsequent single-clicks toggle mute.
-  const activateAudio = async () => {
-    const ctx = audioCtxRef.current;
-    const gain = audioGainRef.current;
-    const buf = audioBufferRef.current;
-    if (!ctx || !gain || !buf) return;
-    if (ctx.state === "suspended") await ctx.resume().catch(() => {});
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.loop = true;
-    src.connect(gain);
-    src.start(0);
-    audioSourceRef.current = src;
-    gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(1.8, ctx.currentTime + 0.3);
+  // Unmute both videos and mark audio as activated (requires user gesture)
+  const activateAudio = () => {
+    const a = heroVideoARef.current;
+    const b = heroVideoBRef.current;
+    if (a) { a.muted = false; a.volume = 1; }
+    if (b) { b.muted = false; b.volume = 1; }
     setMuted(false);
     setAudioActivated(true);
   };
 
   const toggleMute = () => {
-    const ctx = audioCtxRef.current;
-    const gain = audioGainRef.current;
     const newMuted = !muted;
+    const a = heroVideoARef.current;
+    const b = heroVideoBRef.current;
+    if (a) a.muted = newMuted;
+    if (b) b.muted = newMuted;
     setMuted(newMuted);
-    if (!ctx || !gain) return;
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
-    const now = ctx.currentTime;
-    gain.gain.cancelScheduledValues(now);
-    gain.gain.setValueAtTime(gain.gain.value, now);
-    gain.gain.linearRampToValueAtTime(newMuted ? 0 : 1.8, now + 0.08);
   };
 
   const handleAudioButton = () => {
