@@ -69,6 +69,18 @@ export default function Home() {
   const [, navigate] = useLocation();
   const qc = useQueryClient();
 
+  // Make body + html transparent so fixed video background shows through entire page
+  useEffect(() => {
+    const prevBody = document.body.style.background;
+    const prevHtml = document.documentElement.style.background;
+    document.body.style.background = 'transparent';
+    document.documentElement.style.background = 'transparent';
+    return () => {
+      document.body.style.background = prevBody;
+      document.documentElement.style.background = prevHtml;
+    };
+  }, []);
+
   // Real-time username availability check (debounced)
   useEffect(() => {
     const u = claimUsername.trim().toLowerCase();
@@ -259,7 +271,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-screen bg-transparent text-foreground overflow-x-hidden">
 
       {/* ── NAV ───────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 md:px-12 py-5">
@@ -342,31 +354,31 @@ export default function Home() {
         </div>
       </nav>
 
+      {/* ── FULLSCREEN VIDEO BACKGROUND ────────────────────────── */}
+      <video
+        ref={heroVideoARef}
+        autoPlay
+        muted
+        playsInline
+        className="fixed inset-0 w-full h-full object-cover pointer-events-none"
+        style={{ zIndex: -2, opacity: showB ? 0 : 0.45, transition: 'opacity 450ms' }}
+      >
+        <source src={heroVideo} type="video/mp4" />
+      </video>
+      <video
+        ref={heroVideoBRef}
+        muted
+        playsInline
+        className="fixed inset-0 w-full h-full object-cover pointer-events-none"
+        style={{ zIndex: -2, opacity: showB ? 0.45 : 0, transition: 'opacity 450ms' }}
+      >
+        <source src={heroVideo} type="video/mp4" />
+      </video>
+      {/* Dark overlay across entire page */}
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -1, background: 'rgba(0,0,0,0.55)' }} />
+
       {/* ── HERO ──────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden" style={{ background: "#050a14" }}>
-
-        {/* Hero video background — two stacked videos crossfading for seamless loop */}
-        <video
-          ref={heroVideoARef}
-          autoPlay
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[450ms]"
-          style={{ zIndex: 0, opacity: showB ? 0 : 0.35 }}
-        >
-          <source src={heroVideo} type="video/mp4" />
-        </video>
-        <video
-          ref={heroVideoBRef}
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[450ms]"
-          style={{ zIndex: 0, opacity: showB ? 0.35 : 0 }}
-        >
-          <source src={heroVideo} type="video/mp4" />
-        </video>
-
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black pointer-events-none" style={{ zIndex: 2 }} />
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-6">
 
         <div className="absolute bottom-6 right-6 flex flex-col items-end gap-1.5" style={{ zIndex: 4 }}>
           {!audioActivated && (
@@ -412,7 +424,7 @@ export default function Home() {
       </section>
 
       {/* ── CLAIM YOUR URL ────────────────────────────────────── */}
-      <section className="pt-24 pb-8 px-6 md:px-12">
+      <section className="pt-24 pb-8 px-6 md:px-12 relative">
         <div className="max-w-2xl mx-auto text-center">
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -492,7 +504,7 @@ export default function Home() {
       </section>
 
       {/* ── TRENDING PROFILES ──────────────────────────────────── */}
-      <section className="pt-8 pb-24 px-6 md:px-12">
+      <section className="pt-8 pb-24 px-6 md:px-12 relative">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-end justify-between mb-12 flex-wrap gap-4">
             <div>
@@ -550,7 +562,7 @@ export default function Home() {
 
 
       {/* ── CTA ───────────────────────────────────────────────── */}
-      <section className="py-32 px-6 relative overflow-hidden border-t border-white/5">
+      <section className="py-32 px-6 relative">
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <p className="label-caps mb-6">{t.cta.tag}</p>
@@ -564,7 +576,7 @@ export default function Home() {
       </section>
 
       {/* ── FOOTER ────────────────────────────────────────────── */}
-      <footer className="border-t border-white/5 px-6 md:px-12 py-8 flex flex-wrap items-center justify-between gap-4">
+      <footer className="relative px-6 md:px-12 py-8 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3 text-xs font-bold tracking-[0.25em] uppercase">
           <span className="text-white/30">IKISS</span>
           <a href="https://keefnow.com.br" target="_blank" rel="noopener noreferrer" className="text-white/30 hover:text-white transition-colors">KEEFNOW</a>
