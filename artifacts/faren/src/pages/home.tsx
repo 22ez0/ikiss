@@ -73,8 +73,8 @@ export default function Home() {
   useEffect(() => {
     const prevBody = document.body.style.background;
     const prevHtml = document.documentElement.style.background;
-    document.body.style.background = 'black';
-    document.documentElement.style.background = 'black';
+    document.body.style.background = 'transparent';
+    document.documentElement.style.background = 'transparent';
     return () => {
       document.body.style.background = prevBody;
       document.documentElement.style.background = prevHtml;
@@ -361,7 +361,7 @@ export default function Home() {
         muted
         playsInline
         className="fixed inset-0 w-full h-full object-cover pointer-events-none"
-        style={{ zIndex: -2, opacity: showB ? 0 : 1, transition: 'opacity 450ms' }}
+        style={{ zIndex: 1, opacity: showB ? 0 : 1, transition: 'opacity 450ms' }}
       >
         <source src={heroVideo} type="video/mp4" />
       </video>
@@ -370,12 +370,12 @@ export default function Home() {
         muted
         playsInline
         className="fixed inset-0 w-full h-full object-cover pointer-events-none"
-        style={{ zIndex: -2, opacity: showB ? 1 : 0, transition: 'opacity 450ms' }}
+        style={{ zIndex: 1, opacity: showB ? 1 : 0, transition: 'opacity 450ms' }}
       >
         <source src={heroVideo} type="video/mp4" />
       </video>
       {/* Dark overlay across entire page */}
-      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -1, background: 'rgba(0,0,0,0.25)' }} />
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 2, background: 'rgba(0,0,0,0.35)' }} />
 
       {/* ── HERO ──────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-6">
