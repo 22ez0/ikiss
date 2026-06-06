@@ -18,7 +18,7 @@ import {
 
 const RESERVED_USERNAMES = new Set(['keefaren','admin','administrator','api','dashboard','login','register','profile','settings','support','root','ikiss','keef','null','comunidade','community','explore','feed']);
 import heroVideo from "@assets/pinterest_1117033513847707049_1780756845415.mp4";
-import heroAudioSrc from "@assets/On_Possession_spotdown.org_1780756970219.mp3";
+import heroAudioSrc from "@assets/No_One_Noticed_spotdown.org_(1)_1780758427763.mp3";
 
 const PT = {
   nav: { dashboard: "Dashboard", discover: "Descobrir", login: "Entrar", cta: "Criar Seu Link", myProfile: "Meu perfil", logout: "Sair" },
