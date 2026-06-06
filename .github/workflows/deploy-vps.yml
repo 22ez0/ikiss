@@ -1,0 +1,26 @@
+name: Deploy API → Hostinger VPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'artifacts/api-server/**'
+      - 'lib/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'nginx/**'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: bash /opt/faren/scripts/deploy-vps.sh
