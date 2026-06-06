@@ -2,8 +2,8 @@ import { logger } from "./logger";
 
 const RESEND_API = "https://api.resend.com/emails";
 
-const APP_URL = (process.env.APP_URL || "https://faren.com.br").replace(/\/+$/, "");
-const FROM = process.env.EMAIL_FROM || "Faren <no-reply@faren.com.br>";
+const APP_URL = (process.env.APP_URL || "https://ikiss.me").replace(/\/+$/, "");
+const FROM = process.env.EMAIL_FROM || "Ikiss <no-reply@ikiss.me>";
 
 type SendArgs = { to: string; subject: string; html: string; text: string };
 
@@ -41,13 +41,13 @@ function shell(title: string, bodyHtml: string): string {
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#111;border:1px solid #222;border-radius:14px;overflow:hidden">
         <tr><td style="padding:28px 32px 8px 32px">
-          <div style="font-size:22px;font-weight:700;letter-spacing:.02em;color:#fff">faren</div>
+          <div style="font-size:22px;font-weight:700;letter-spacing:.02em;color:#fff">ikiss</div>
         </td></tr>
         <tr><td style="padding:8px 32px 32px 32px;font-size:15px;line-height:1.6;color:#d4d4d4">
           ${bodyHtml}
         </td></tr>
         <tr><td style="padding:18px 32px 28px 32px;border-top:1px solid #1f1f1f;color:#777;font-size:12px;line-height:1.5">
-          Você está recebendo este e-mail porque alguém usou seu endereço em <a href="${APP_URL}" style="color:#9ca3af">faren.com.br</a>.<br>
+          Você está recebendo este e-mail porque alguém usou seu endereço em <a href="${APP_URL}" style="color:#9ca3af">ikiss.me</a>.<br>
           Se não foi você, pode ignorar com segurança.
         </td></tr>
       </table>
@@ -61,7 +61,7 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
   const subject = "Verifique seu email";
   const html = shell(subject, `
     <h1 style="margin:0 0 12px 0;font-size:20px;color:#fff">Confirme seu e-mail</h1>
-    <p style="margin:0 0 20px 0">Bem-vindo ao Faren! Clique no botão abaixo pra confirmar seu endereço e ativar sua conta.</p>
+    <p style="margin:0 0 20px 0">Bem-vindo ao Ikiss! Clique no botão abaixo pra confirmar seu endereço e ativar sua conta.</p>
     <p style="margin:0 0 24px 0">
       <a href="${link}" style="display:inline-block;background:#fff;color:#000;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Verificar e-mail</a>
     </p>
@@ -69,13 +69,13 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
     <p style="margin:0;word-break:break-all;color:#9ca3af;font-size:13px">${link}</p>
     <p style="margin:18px 0 0 0;color:#777;font-size:12px">Este link expira em 24 horas.</p>
   `);
-  const text = `Verifique seu e-mail no Faren\n\nAbra este link para confirmar sua conta:\n${link}\n\nEste link expira em 24 horas. Se não foi você, ignore este e-mail.`;
+  const text = `Verifique seu e-mail no Ikiss\n\nAbra este link para confirmar sua conta:\n${link}\n\nEste link expira em 24 horas. Se não foi você, ignore este e-mail.`;
   return send({ to, subject, html, text });
 }
 
 export async function sendPasswordResetEmail(to: string, token: string): Promise<boolean> {
   const link = `${APP_URL}/reset-password?token=${encodeURIComponent(token)}`;
-  const subject = "Redefinir sua senha do Faren";
+  const subject = "Redefinir sua senha do Ikiss";
   const html = shell(subject, `
     <h1 style="margin:0 0 12px 0;font-size:20px;color:#fff">Redefinir senha</h1>
     <p style="margin:0 0 20px 0">Recebemos um pedido pra redefinir a senha da sua conta. Clique no botão pra escolher uma nova.</p>
@@ -86,6 +86,6 @@ export async function sendPasswordResetEmail(to: string, token: string): Promise
     <p style="margin:0;word-break:break-all;color:#9ca3af;font-size:13px">${link}</p>
     <p style="margin:18px 0 0 0;color:#777;font-size:12px">Este link expira em 1 hora. Se não foi você, ignore este e-mail — sua senha continua a mesma.</p>
   `);
-  const text = `Redefinir sua senha do Faren\n\nAbra este link para escolher uma nova senha:\n${link}\n\nEste link expira em 1 hora. Se não foi você, ignore este e-mail.`;
+  const text = `Redefinir sua senha do Ikiss\n\nAbra este link para escolher uma nova senha:\n${link}\n\nEste link expira em 1 hora. Se não foi você, ignore este e-mail.`;
   return send({ to, subject, html, text });
 }

@@ -92,7 +92,7 @@ export default function Dashboard() {
             Visão geral
           </h1>
           <p className="mt-1.5 text-[10px] tracking-[0.25em] uppercase text-white/40 font-semibold">
-            faren.com.br/{username}
+            ikiss.me/{username}
           </p>
         </div>
         <Link

@@ -1159,7 +1159,7 @@ export default function ProfileView({ profile, isOwner, onFollow, onLike, isFoll
         {/* Footer */}
         <div className="mt-12 flex flex-col items-center gap-3">
           <a
-            href="https://faren.com.br"
+            href="https://ikiss.me"
             target="_blank"
             rel="noopener noreferrer"
             className="label-caps hover:text-white/70 transition-colors"

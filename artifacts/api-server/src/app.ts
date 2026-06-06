@@ -10,7 +10,7 @@ import { logger } from "./lib/logger";
 const app: Express = express();
 const isProduction = process.env.NODE_ENV === "production";
 const allowedOrigins = new Set(
-  (process.env.CORS_ALLOWED_ORIGINS || "https://faren.com.br,https://www.faren.com.br")
+  (process.env.CORS_ALLOWED_ORIGINS || "https://ikiss.me,https://www.ikiss.me")
     .split(",")
     .map(origin => origin.trim())
     .filter(Boolean),

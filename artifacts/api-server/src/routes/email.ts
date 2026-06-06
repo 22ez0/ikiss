@@ -15,8 +15,8 @@ const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN ?? "";
 const EMAIL_WEBHOOK_SECRET = process.env.EMAIL_WEBHOOK_SECRET ?? "";
 
 const pool = new Pool({
-  connectionString: process.env.NEON_DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  connectionString: process.env.NEON_DATABASE_URL ?? process.env.DATABASE_URL,
+  ssl: process.env.NEON_DATABASE_URL ? { rejectUnauthorized: false } : false,
   max: 3,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
@@ -204,7 +204,7 @@ router.post("/email/addresses", async (req: Request, res: Response): Promise<voi
 
     const clean = address.toLowerCase().replace(/[^a-z0-9._+-]/g, "").slice(0, 40);
     if (!clean) { res.status(400).json({ error: "Endereço inválido" }); return; }
-    const full = `${clean}@faren.com.br`;
+    const full = `${clean}@ikiss.me`;
 
     const exists = await pool.query("SELECT id FROM email_addresses WHERE address = $1", [full]);
     if (exists.rows.length > 0) { res.status(409).json({ error: "Endereço já em uso" }); return; }
@@ -270,7 +270,7 @@ router.get("/email/inbox", async (req: Request, res: Response): Promise<void> =>
 
 router.post("/email/test", async (req: Request, res: Response): Promise<void> => {
   try {
-    const msg = `📧 **TESTE DE EMAIL**\n\`\`\`\nPara:     teste@faren.com.br\nDe:       noreply@discord.com\nAssunto:  Verifique seu endereço de email\n\`\`\`\n🔑 **CÓDIGO: \`847291\`**\n\n**Conteúdo:**\n\`\`\`\nSeu código de verificação é 847291.\nEle expira em 10 minutos.\n\`\`\``;
+    const msg = `📧 **TESTE DE EMAIL**\n\`\`\`\nPara:     teste@ikiss.me\nDe:       noreply@discord.com\nAssunto:  Verifique seu endereço de email\n\`\`\`\n🔑 **CÓDIGO: \`847291\`**\n\n**Conteúdo:**\n\`\`\`\nSeu código de verificação é 847291.\nEle expira em 10 minutos.\n\`\`\``;
     for (const id of ALLOWED_DISCORD_IDS) await sendDiscordDm(id, msg);
     res.json({ ok: true, message: "DM de teste enviada" });
   } catch (e: any) {

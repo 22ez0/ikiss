@@ -76,15 +76,15 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!profile) return;
     const displayName = (profile as any).displayName || profile.username || username;
-    const bio = (profile as any).bio || `Veja o perfil de @${profile.username} na Faren`;
+    const bio = (profile as any).bio || `Veja o perfil de @${profile.username} na Ikiss`;
     const avatarUrl = (profile as any).avatarUrl || "";
     const backgroundUrl = (profile as any).backgroundUrl || "";
     const ogImage = (backgroundUrl && !backgroundUrl.startsWith("data:")) ? backgroundUrl
       : (avatarUrl && !avatarUrl.startsWith("data:")) ? avatarUrl
-      : "https://faren.com.br/og-image.png";
-    const profileUrl = `https://faren.com.br/${profile.username}`;
+      : "https://ikiss.me/og-image.png";
+    const profileUrl = `https://ikiss.me/${profile.username}`;
 
-    document.title = `${displayName} (@${profile.username}) — Faren`;
+    document.title = `${displayName} (@${profile.username}) — Ikiss`;
 
     const setMeta = (selector: string, attr: string, value: string) => {
       let el = document.querySelector<HTMLMetaElement>(selector);
@@ -95,18 +95,18 @@ export default function ProfilePage() {
       (el as any)[attr] = value;
     };
 
-    setMeta('meta[property="og:title"]', "content", `${displayName} (@${profile.username}) — Faren`);
+    setMeta('meta[property="og:title"]', "content", `${displayName} (@${profile.username}) — Ikiss`);
     setMeta('meta[property="og:description"]', "content", bio.slice(0, 200));
     setMeta('meta[property="og:image"]', "content", ogImage);
     setMeta('meta[property="og:url"]', "content", profileUrl);
     setMeta('meta[property="og:type"]', "content", "profile");
-    setMeta('meta[name="twitter:title"]', "content", `${displayName} (@${profile.username}) — Faren`);
+    setMeta('meta[name="twitter:title"]', "content", `${displayName} (@${profile.username}) — Ikiss`);
     setMeta('meta[name="twitter:description"]', "content", bio.slice(0, 200));
     setMeta('meta[name="twitter:image"]', "content", ogImage);
     setMeta('meta[name="description"]', "content", bio.slice(0, 200));
 
     return () => {
-      document.title = "Faren — Seu perfil, do seu jeito";
+      document.title = "Ikiss — Seu perfil, do seu jeito";
     };
   }, [profile, username]);
 

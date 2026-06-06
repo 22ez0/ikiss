@@ -16,9 +16,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const RESERVED_USERNAMES = new Set(['keefaren','admin','administrator','api','dashboard','login','register','profile','settings','support','root','faren','keef','null','comunidade','community','explore','feed']);
-import heroVideo from "@assets/pinterest_884112970592536960_1776809417801.mp4";
-import heroAudioSrc from "@assets/Download_1776810133370.mp4";
+const RESERVED_USERNAMES = new Set(['keefaren','admin','administrator','api','dashboard','login','register','profile','settings','support','root','ikiss','keef','null','comunidade','community','explore','feed']);
+import heroVideo from "@assets/pinterest_1117033513847707049_1780756845415.mp4";
+import heroAudioSrc from "@assets/On_Possession_spotdown.org_1780756970219.mp3";
 
 const PT = {
   nav: { dashboard: "Dashboard", discover: "Descobrir", login: "Entrar", cta: "Criar Seu Link", myProfile: "Meu perfil", logout: "Sair" },
@@ -54,7 +54,8 @@ const EN = {
 
 export default function Home() {
   const { data: trendingProfiles, isLoading } = useGetTrendingProfiles({ limit: 6 }, { query: { staleTime: 120_000, gcTime: 300_000 } });
-  const [lang, setLang] = useState<'PT' | 'EN'>(() => (localStorage.getItem('faren_lang') as any) || 'PT');
+  const [lang, setLang] = useState<'PT' | 'EN'>(() => (localStorage.getItem('ikiss_lang') as any) || 'PT');
+  const [audioActivated, setAudioActivated] = useState(false);
   const heroVideoARef = useRef<HTMLVideoElement>(null);
   const heroVideoBRef = useRef<HTMLVideoElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -143,62 +144,57 @@ export default function Home() {
     };
   }, []);
 
-  // Gapless audio: pre-create context+source, start playing immediately. Use gesture fallback if autoplay blocked.
+  // Audio: pre-load buffer but only start playing after user double-clicks the button.
   const mutedRef = useRef(muted);
   useEffect(() => { mutedRef.current = muted; }, [muted]);
 
+  // Pre-load audio buffer on mount (silent — does not play)
   useEffect(() => {
     let cancelled = false;
-    let removeGestureListeners: (() => void) | null = null;
-
     (async () => {
       try {
         const Ctx: typeof AudioContext = (window.AudioContext || (window as any).webkitAudioContext);
         const ctx = new Ctx();
         audioCtxRef.current = ctx;
         const gain = ctx.createGain();
-        gain.gain.value = mutedRef.current ? 0 : 1.8;
+        gain.gain.value = 0;
         gain.connect(ctx.destination);
         audioGainRef.current = gain;
-
         const res = await fetch(heroAudioSrc);
         const arrBuf = await res.arrayBuffer();
         const decoded = await ctx.decodeAudioData(arrBuf);
         if (cancelled) { ctx.close(); return; }
         audioBufferRef.current = decoded;
-
-        const src = ctx.createBufferSource();
-        src.buffer = decoded;
-        src.loop = true;
-        src.connect(gain);
-        src.start(0);
-        audioSourceRef.current = src;
-
-        const tryResume = () => ctx.resume().catch(() => {});
-        await tryResume();
-
-        if (ctx.state !== "running") {
-          const events: (keyof DocumentEventMap)[] = ["pointerdown", "touchstart", "keydown", "click", "scroll"];
-          const onGesture = () => {
-            tryResume();
-            if (ctx.state === "running") removeGestureListeners?.();
-          };
-          events.forEach(e => document.addEventListener(e, onGesture, { passive: true, capture: true }));
-          removeGestureListeners = () => events.forEach(e => document.removeEventListener(e, onGesture, { capture: true } as any));
-        }
       } catch (e) {
-        console.warn("Audio init failed:", e);
+        console.warn("Audio preload failed:", e);
       }
     })();
-
     return () => {
       cancelled = true;
-      removeGestureListeners?.();
       try { audioSourceRef.current?.stop(); } catch {}
       audioSourceRef.current?.disconnect();
       audioCtxRef.current?.close();
     };
   }, []);
+
+  // Activate audio on first double-click; subsequent single-clicks toggle mute.
+  const activateAudio = async () => {
+    const ctx = audioCtxRef.current;
+    const gain = audioGainRef.current;
+    const buf = audioBufferRef.current;
+    if (!ctx || !gain || !buf) return;
+    if (ctx.state === "suspended") await ctx.resume().catch(() => {});
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    src.connect(gain);
+    src.start(0);
+    audioSourceRef.current = src;
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(1.8, ctx.currentTime + 0.3);
+    setMuted(false);
+    setAudioActivated(true);
+  };
 
   const toggleMute = () => {
     const ctx = audioCtxRef.current;
@@ -211,6 +207,11 @@ export default function Home() {
     gain.gain.cancelScheduledValues(now);
     gain.gain.setValueAtTime(gain.gain.value, now);
     gain.gain.linearRampToValueAtTime(newMuted ? 0 : 1.8, now + 0.08);
+  };
+
+  const handleAudioButton = () => {
+    if (!audioActivated) activateAudio();
+    else toggleMute();
   };
 
   // Discord OAuth2 callback handler — triggered when Discord redirects back with ?code=
@@ -254,7 +255,7 @@ export default function Home() {
   const toggleLang = () => {
     const next = lang === 'PT' ? 'EN' : 'PT';
     setLang(next);
-    localStorage.setItem('faren_lang', next);
+    localStorage.setItem('ikiss_lang', next);
   };
 
   return (
@@ -264,7 +265,7 @@ export default function Home() {
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 md:px-12 py-5">
         <Link href="/">
           <span className="text-sm font-bold tracking-[0.25em] uppercase text-white hover:opacity-70 transition-opacity">
-            FAREN
+            IKISS
           </span>
         </Link>
         <div className="flex items-center gap-4 md:gap-8 flex-wrap justify-end">
@@ -367,14 +368,20 @@ export default function Home() {
 
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black pointer-events-none" style={{ zIndex: 2 }} />
 
-        <button
-          onClick={toggleMute}
-          aria-label={muted ? "Ativar som" : "Silenciar"}
-          className="absolute bottom-6 right-6 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70 border border-white/15 text-white/70 hover:text-white backdrop-blur-sm transition-all"
-          style={{ zIndex: 4 }}
-        >
-          {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-        </button>
+        <div className="absolute bottom-6 right-6 flex flex-col items-end gap-1.5" style={{ zIndex: 4 }}>
+          {!audioActivated && (
+            <span className="text-[9px] tracking-[0.18em] uppercase text-white/40 select-none">
+              clique para som
+            </span>
+          )}
+          <button
+            onClick={handleAudioButton}
+            aria-label={!audioActivated ? "Clique para ativar música" : muted ? "Ativar som" : "Silenciar"}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70 border border-white/15 text-white/70 hover:text-white backdrop-blur-sm transition-all"
+          >
+            {!audioActivated ? <VolumeX className="w-4 h-4 opacity-40" /> : muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+        </div>
 
         <div className="relative flex flex-col items-center text-center max-w-5xl mx-auto" style={{ zIndex: 3 }}>
           <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="label-caps mb-8" style={{ textShadow: '0 0 20px rgba(0,0,0,0.9), 0 2px 8px rgba(0,0,0,0.8)' }}>
@@ -384,7 +391,7 @@ export default function Home() {
           <div className="overflow-hidden">
             <motion.div initial={{ y: 120, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
               <h1 className="display-heading text-white leading-none" style={{ textShadow: '0 0 40px rgba(0,0,0,1), 0 0 80px rgba(0,0,0,0.9), 2px 2px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.6)' }}>{t.hero.h1a}</h1>
-              <h1 className="display-heading-outline leading-none" style={{ textShadow: '0 0 40px rgba(0,0,0,1), 0 0 60px rgba(0,0,0,0.8)', filter: 'drop-shadow(0 0 12px rgba(0,0,0,0.9))' }}>{t.hero.h1b}</h1>
+              <h1 className="display-heading text-white leading-none" style={{ textShadow: '0 0 40px rgba(0,0,0,1), 0 0 80px rgba(0,0,0,0.9), 2px 2px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.6)' }}>{t.hero.h1b}</h1>
               <h1 className="display-heading text-white leading-none" style={{ textShadow: '0 0 40px rgba(0,0,0,1), 0 0 80px rgba(0,0,0,0.9), 2px 2px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.6)' }}>{t.hero.h1c}</h1>
             </motion.div>
           </div>
@@ -442,7 +449,7 @@ export default function Home() {
               return (
                 <div className="flex items-stretch h-14 rounded-sm overflow-hidden border bg-white/[0.03] backdrop-blur-sm transition-colors" style={{ borderColor: borderClr }}>
                   <span className="flex items-center pl-5 pr-1 text-sm select-none" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                    faren.com.br/
+                    ikiss.me/
                   </span>
                   <input
                     type="text"
@@ -474,7 +481,7 @@ export default function Home() {
                 claimStatus === 'taken' || claimStatus === 'invalid' || claimStatus === 'reserved' ? 'rgba(248,113,113,0.85)' :
                 'rgba(255,255,255,0.35)'
             }}>
-              {claimStatus === 'available' && (lang === 'PT' ? `✓ faren.com.br/${claimUsername} está disponível` : `✓ faren.com.br/${claimUsername} is available`)}
+              {claimStatus === 'available' && (lang === 'PT' ? `✓ ikiss.me/${claimUsername} está disponível` : `✓ ikiss.me/${claimUsername} is available`)}
               {claimStatus === 'taken' && (lang === 'PT' ? '✗ Esse username já está em uso' : '✗ That username is taken')}
               {claimStatus === 'reserved' && (lang === 'PT' ? '✗ Esse username é reservado' : '✗ That username is reserved')}
               {claimStatus === 'invalid' && (lang === 'PT' ? '✗ 3-15 caracteres, sem _ no início/fim' : '✗ 3-15 chars, no leading/trailing _')}
@@ -546,7 +553,6 @@ export default function Home() {
       {/* ── FEATURES ROW ──────────────────────────────────────── */}
       <section className="py-16 px-6 md:px-12 pb-32">
         <div className="max-w-6xl mx-auto">
-          <div className="glow-line mb-16" />
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-px bg-white/5">
             {t.features.map((feat, i) => (
               <motion.div key={feat.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }} className="p-8 bg-background hover:bg-white/[0.03] transition-colors duration-300">
@@ -556,7 +562,6 @@ export default function Home() {
               </motion.div>
             ))}
           </div>
-          <div className="glow-line mt-16" />
         </div>
       </section>
 
@@ -577,7 +582,7 @@ export default function Home() {
       {/* ── FOOTER ────────────────────────────────────────────── */}
       <footer className="border-t border-white/5 px-6 md:px-12 py-8 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3 text-xs font-bold tracking-[0.25em] uppercase">
-          <span className="text-white/30">FAREN</span>
+          <span className="text-white/30">IKISS</span>
           <a href="https://keefnow.com.br" target="_blank" rel="noopener noreferrer" className="text-white/30 hover:text-white transition-colors">KEEFNOW</a>
         </div>
         <div className="flex gap-6 flex-wrap">

@@ -3,18 +3,18 @@ import { useGetMe, User, setAuthTokenGetter } from "@workspace/api-client-react"
 import { useLocation } from "wouter";
 
 function getCookieToken(): string | null {
-  const match = document.cookie.match(/(?:^|;\s*)faren_token=([^;]+)/);
+  const match = document.cookie.match(/(?:^|;\s*)ikiss_token=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : null;
 }
 
 function setCookieToken(token: string) {
   const expires = new Date();
   expires.setDate(expires.getDate() + 90);
-  document.cookie = `faren_token=${encodeURIComponent(token)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
+  document.cookie = `ikiss_token=${encodeURIComponent(token)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
 }
 
 function clearCookieToken() {
-  document.cookie = "faren_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  document.cookie = "ikiss_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 }
 
 function getStoredToken(): string | null {

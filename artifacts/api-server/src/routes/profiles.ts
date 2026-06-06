@@ -833,7 +833,7 @@ router.post("/profile/discord/lanyard", requireAuth, async (req, res): Promise<v
 
   try {
     const lanyardRes = await fetch(`https://api.lanyard.rest/v1/users/${uid}`, {
-      headers: { "User-Agent": "faren.com.br/1.0" },
+      headers: { "User-Agent": "ikiss.me/1.0" },
       signal: AbortSignal.timeout(8000),
     });
 

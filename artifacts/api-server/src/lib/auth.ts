@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
 
-const JWT_SECRET = process.env.SESSION_SECRET ?? "faren-secret-key";
+const JWT_SECRET = process.env.SESSION_SECRET ?? "ikiss-secret-key";
 
 export interface JwtPayload {
   userId: number;

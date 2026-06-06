@@ -542,7 +542,7 @@ function LayoutTabPanel({
                 }}
               >
                 <p className={`text-2xl text-white ${fontPreviewClass[opt.value] || ''}`}>
-                  {previewData.displayName.slice(0, 8) || 'Faren'}
+                  {previewData.displayName.slice(0, 8) || 'Ikiss'}
                 </p>
                 <p className={`text-xs text-white/45 mt-1 ${fontPreviewClass[opt.value] || ''}`}>
                   abc 123 • {opt.label}
@@ -1465,7 +1465,7 @@ export default function EditProfile() {
 
   const selectedPlatformInfo = SOCIAL_PLATFORMS.find(p => p.value === selectedPlatform);
 
-  const profileSiteUrl = (profile as any)?.username ? `https://faren.com.br/${(profile as any).username}` : null;
+  const profileSiteUrl = (profile as any)?.username ? `https://ikiss.me/${(profile as any).username}` : null;
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -1685,7 +1685,7 @@ export default function EditProfile() {
                 </FieldRow>
 
                 <FieldRow label="Título do Perfil (aba do navegador)">
-                  <StyledInput value={form.profileTitle} onChange={e => set('profileTitle', e.target.value)} placeholder="Meu Perfil Faren" />
+                  <StyledInput value={form.profileTitle} onChange={e => set('profileTitle', e.target.value)} placeholder="Meu Perfil Ikiss" />
                 </FieldRow>
 
                 <div className="glow-line" />

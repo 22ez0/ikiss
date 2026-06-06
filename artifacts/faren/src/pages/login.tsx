@@ -97,7 +97,7 @@ export default function Login() {
     <div className="min-h-screen bg-background flex flex-col">
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-5">
         <Link href="/">
-          <span className="text-sm font-bold tracking-[0.25em] uppercase text-white hover:opacity-70 transition-opacity">FAREN</span>
+          <span className="text-sm font-bold tracking-[0.25em] uppercase text-white hover:opacity-70 transition-opacity">IKISS</span>
         </Link>
         <Link href="/register" className="nav-link">Criar conta</Link>
       </nav>

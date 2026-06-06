@@ -4,8 +4,8 @@ import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-const SITE_URL = "https://faren.com.br";
-const API_URL = "https://api.faren.com.br";
+const SITE_URL = "https://ikiss.me";
+const API_URL = "https://api.ikiss.me";
 const DEFAULT_IMAGE = `${SITE_URL}/opengraph.jpg`;
 
 const RESERVED = new Set([
@@ -82,7 +82,7 @@ async function serveOgPage(username: string, res: Response): Promise<void> {
       .limit(1);
 
     const displayName = user.displayName || user.username;
-    const bio = (profile?.bio || `Veja o perfil de @${user.username} na Faren`).slice(0, 200);
+    const bio = (profile?.bio || `Veja o perfil de @${user.username} na Ikiss`).slice(0, 200);
     const isUsableImage = (u: string | null | undefined): u is string =>
       !!u && !u.startsWith("data:") && !/\.(mp4|webm|mov|m4v)(\?|$)/i.test(u);
     const isGif = (u: string | null | undefined): u is string =>
@@ -121,24 +121,24 @@ async function serveOgPage(username: string, res: Response): Promise<void> {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>${esc(displayName)}${verifiedSymbol} — Faren</title>
+  <title>${esc(displayName)}${verifiedSymbol} — Ikiss</title>
   <meta name="description" content="${esc(bio)}"/>
 
   <meta property="og:type" content="profile"/>
   <meta property="og:url" content="${esc(profileUrl)}"/>
-  <meta property="og:title" content="${esc(displayName)}${verifiedSymbol} (@${esc(user.username)}) — Faren"/>
+  <meta property="og:title" content="${esc(displayName)}${verifiedSymbol} (@${esc(user.username)}) — Ikiss"/>
   <meta property="og:description" content="${esc(bio)}"/>
   <meta property="og:image" content="${esc(ogImageUrl)}"/>
   <meta property="og:image:width" content="1200"/>
   <meta property="og:image:height" content="630"/>
-  <meta property="og:site_name" content="Faren"/>
+  <meta property="og:site_name" content="Ikiss"/>
   <meta property="og:locale" content="pt_BR"/>
 
   <meta property="profile:username" content="${esc(user.username)}"/>
 
   <meta name="twitter:card" content="summary_large_image"/>
   <meta name="twitter:url" content="${esc(profileUrl)}"/>
-  <meta name="twitter:title" content="${esc(displayName)}${verifiedSymbol} (@${esc(user.username)}) — Faren"/>
+  <meta name="twitter:title" content="${esc(displayName)}${verifiedSymbol} (@${esc(user.username)}) — Ikiss"/>
   <meta name="twitter:description" content="${esc(bio)}"/>
   <meta name="twitter:image" content="${esc(ogImageUrl)}"/>
 
@@ -161,7 +161,7 @@ async function serveOgPage(username: string, res: Response): Promise<void> {
     <h1>${esc(displayName)}</h1>
     <p class="username">@${esc(user.username)}</p>
     ${bio ? `<p class="bio">${esc(bio)}</p>` : ''}
-    <a class="btn" href="${esc(profileUrl)}">Ver perfil na Faren</a>
+    <a class="btn" href="${esc(profileUrl)}">Ver perfil na Ikiss</a>
   </div>
 </body>
 </html>`);

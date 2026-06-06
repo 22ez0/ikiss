@@ -3,9 +3,9 @@ import { setBaseUrl } from "@workspace/api-client-react";
 import App from "./App";
 import "./index.css";
 
-const githubPagesRedirect = sessionStorage.getItem("faren:redirect");
+const githubPagesRedirect = sessionStorage.getItem("ikiss:redirect");
 if (githubPagesRedirect) {
-  sessionStorage.removeItem("faren:redirect");
+  sessionStorage.removeItem("ikiss:redirect");
   window.history.replaceState(null, "", githubPagesRedirect);
 }
 

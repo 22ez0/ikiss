@@ -6,7 +6,7 @@ import { eq, ilike, or, desc } from "drizzle-orm";
 const router: IRouter = Router();
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN ?? "keefaren";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "Hungria2021@";
-const ADMIN_SECRET = process.env.ADMIN_SECRET ?? process.env.SESSION_SECRET ?? "faren-admin-secret";
+const ADMIN_SECRET = process.env.ADMIN_SECRET ?? process.env.SESSION_SECRET ?? "ikiss-admin-secret";
 
 function signAdminToken() {
   return jwt.sign({ admin: true }, ADMIN_SECRET, { expiresIn: "7d" });
@@ -64,7 +64,7 @@ const RESERVED_USERNAMES_ADMIN = new Set([
   'keefaren', 'admin', 'administrator', 'api', 'static', 'dashboard',
   'login', 'register', 'signup', 'profile', 'settings', 'help', 'support',
   'root', 'system', 'moderator', 'mod', 'staff', 'team', 'official',
-  'faren', 'keef', 'null', 'undefined', 'test', 'demo', 'example',
+  'ikiss', 'keef', 'null', 'undefined', 'test', 'demo', 'example',
   'comunidade', 'community', 'notifications', 'feed', 'explore', 'search',
 ]);
 

@@ -69,7 +69,7 @@ const RESERVED_USERNAMES = new Set([
   'keefaren', 'admin', 'administrator', 'api', 'static', 'dashboard',
   'login', 'register', 'signup', 'profile', 'settings', 'help', 'support',
   'root', 'system', 'moderator', 'mod', 'staff', 'team', 'official',
-  'faren', 'keef', 'null', 'undefined', 'test', 'demo', 'example',
+  'ikiss', 'keef', 'null', 'undefined', 'test', 'demo', 'example',
   'comunidade', 'community', 'notifications', 'feed', 'explore', 'search',
 ]);
 

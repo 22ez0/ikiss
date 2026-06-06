@@ -551,7 +551,7 @@ export default function Comunidade() {
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 border-b border-white/5 bg-background/80 backdrop-blur-md">
         <Link href="/">
-          <span className="text-sm font-bold tracking-[0.25em] uppercase text-white hover:opacity-70 transition-opacity">FAREN</span>
+          <span className="text-sm font-bold tracking-[0.25em] uppercase text-white hover:opacity-70 transition-opacity">IKISS</span>
         </Link>
         <div className="flex items-center gap-3 sm:gap-5 flex-wrap justify-end">
           <Link href="/dashboard" className="nav-link hidden sm:inline">Dashboard</Link>

@@ -41,7 +41,7 @@ export function DashboardLayout({ children, active = "overview" }: Props) {
 
   const username = user?.username || "";
   const initials = (user?.displayName || username || "?").slice(0, 2).toUpperCase();
-  const profileUrl = username ? `https://faren.com.br/${username}` : "";
+  const profileUrl = username ? `https://ikiss.me/${username}` : "";
 
   // Single-section sidebar — only what actually exists. No "soon" placeholders,
   // no duplicate links to the same edit page.
@@ -109,7 +109,7 @@ export function DashboardLayout({ children, active = "overview" }: Props) {
         {/* Brand */}
         <Link href="/" className="px-5 h-14 border-b border-white/10 flex items-center gap-2.5">
           <FarenGlyph size={14} className="text-white" />
-          <span className="text-sm font-bold tracking-[0.28em] uppercase text-white">FAREN</span>
+          <span className="text-sm font-bold tracking-[0.28em] uppercase text-white">IKISS</span>
         </Link>
 
         {/* Nav */}
@@ -189,7 +189,7 @@ export function DashboardLayout({ children, active = "overview" }: Props) {
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Mobile top bar */}
         <div className="md:hidden sticky top-0 z-20 h-14 bg-black border-b border-white/10 flex items-center justify-between px-4">
-          <span className="text-sm font-bold tracking-[0.28em] uppercase">FAREN</span>
+          <span className="text-sm font-bold tracking-[0.28em] uppercase">IKISS</span>
           <button onClick={() => setOpen((s) => !s)} className="p-2 text-white/70 hover:text-white">
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>

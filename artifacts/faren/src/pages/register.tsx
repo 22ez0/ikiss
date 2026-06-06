@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, ArrowLeft, RotateCw } from "lucide-react";
 
-const RESERVED = new Set(['keefaren','admin','administrator','api','dashboard','login','register','profile','settings','support','root','faren','keef','null','comunidade','community','explore','feed']);
+const RESERVED = new Set(['keefaren','admin','administrator','api','dashboard','login','register','profile','settings','support','root','ikiss','keef','null','comunidade','community','explore','feed']);
 
 const registerSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -194,7 +194,7 @@ export default function Register() {
     <div className="min-h-screen bg-background flex flex-col">
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-5">
         <Link href="/">
-          <span className="text-sm font-bold tracking-[0.25em] uppercase text-white hover:opacity-70 transition-opacity">FAREN</span>
+          <span className="text-sm font-bold tracking-[0.25em] uppercase text-white hover:opacity-70 transition-opacity">IKISS</span>
         </Link>
         <Link href="/login" className="nav-link">Entrar</Link>
       </nav>
@@ -267,7 +267,7 @@ export default function Register() {
                     <label className="label-caps block mb-2">Nome de usuário</label>
                     <div className="flex">
                       <span className="inline-flex items-center px-3 border border-r-0 border-white/10 bg-white/5 text-xs text-white/40 tracking-wider rounded-l-sm">
-                        faren/
+                        ikiss.me/
                       </span>
                       <input
                         {...form.register("username")}

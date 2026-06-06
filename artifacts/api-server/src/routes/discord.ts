@@ -7,7 +7,7 @@ const router: IRouter = Router();
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID ?? "";
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET ?? "";
-const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI ?? "https://faren.com.br/";
+const DISCORD_REDIRECT_URI = process.env.DISCORD_REDIRECT_URI ?? "https://ikiss.me/";
 
 const DISCORD_SCOPES = [
   "identify",

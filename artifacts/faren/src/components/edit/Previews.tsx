@@ -387,7 +387,7 @@ const FONT_CLASS: Record<string, string> = {
 
 export function FontPreview({
   kind,
-  sample = "Faren",
+  sample = "Ikiss",
 }: {
   kind: string;
   sample?: string;
