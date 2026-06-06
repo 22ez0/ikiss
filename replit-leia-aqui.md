@@ -34,11 +34,11 @@ O `mockup-sandbox` só precisa subir se for trabalhar na Canvas com variações 
 
 ### 3. Como funciona o roteamento da API no preview (modo padrão: prod em tempo real)
 
-**Por padrão, o preview do Faren mostra os dados REAIS da produção em tempo real.** Isso é o que o dono do projeto quer — abrir o preview e ver o site igualzinho `faren.com.br`, com os usuários reais, perfis, trending etc.
+**Por padrão, o preview do Faren mostra os dados REAIS da produção em tempo real.** Isso é o que o dono do projeto quer — abrir o preview e ver o site igualzinho `ikiss.me`, com os usuários reais, perfis, trending etc.
 
 A pegadinha: o frontend rodando no preview é servido pelo **workspace proxy do Replit** (porta 80). Quando o JS faz `fetch("/api/...")`, a request **não vai pro Vite** (porta 21395) — vai pro workspace proxy, que olha o `artifact.toml` de cada artifact e roteia o path pro artifact dono. O `api-server` declara `paths = ["/api"]`, então tudo `/api/*` cai nele (porta 8080). Logo, configurar só o `vite.config.ts` proxy **não é suficiente** — o browser nem encosta no Vite pras chamadas `/api/*`.
 
-A solução montada: em **dev**, o `api-server` **não sobe o backend de verdade**. Ele roda `node dev-proxy.mjs` (ver `artifacts/api-server/dev-proxy.mjs`), que é um mini-proxy HTTP que repassa **toda** request `/api/*` pra `https://api.faren.com.br` (que por sua vez vai pelo Cloudflare → Render) com `User-Agent: faren-replit-dev-proxy/1.0` (escapa do `botBlock`). Isso está configurado em `artifacts/api-server/.replit-artifact/artifact.toml`:
+A solução montada: em **dev**, o `api-server` **não sobe o backend de verdade**. Ele roda `node dev-proxy.mjs` (ver `artifacts/api-server/dev-proxy.mjs`), que é um mini-proxy HTTP que repassa **toda** request `/api/*` pra `https://api.ikiss.me` (que por sua vez vai pelo Cloudflare → Render) com `User-Agent: ikiss-replit-dev-proxy/1.0` (escapa do `botBlock`). Isso está configurado em `artifacts/api-server/.replit-artifact/artifact.toml`:
 
 ```toml
 [services.development]
@@ -53,10 +53,10 @@ Como reforço (e pra cobrir o caso de alguém abrir `http://localhost:21395` dir
 server: {
   proxy: {
     "/api": {
-      target: process.env.VITE_DEV_API_PROXY ?? "https://api.faren.com.br",
+      target: process.env.VITE_DEV_API_PROXY ?? "https://api.ikiss.me",
       changeOrigin: true,
       secure: true,
-      headers: { "User-Agent": "faren-replit-dev-proxy/1.0" },
+      headers: { "User-Agent": "ikiss-replit-dev-proxy/1.0" },
     },
   },
 }
@@ -87,7 +87,7 @@ curl -s http://localhost:21395/api/healthz
 
 > Pode demorar 30-60s no 1º hit por causa do cold start do Render free tier — depois cai pra ms.
 
-Tirar screenshot do artifact `faren` deve mostrar a landing page **igual à prod** (`faren.com.br`), sem erros vermelhos no console (o "Audio init failed" é benigno e não tem relação com a API).
+Tirar screenshot do artifact `faren` deve mostrar a landing page **igual à prod** (`ikiss.me`), sem erros vermelhos no console (o "Audio init failed" é benigno e não tem relação com a API).
 
 > ⚠️ **Cold start do Render free tier:** se o trending/discover demorar 30-60s na primeira chamada após o site ficar parado, é normal. As chamadas seguintes voltam em milissegundos. Não confunda com bug.
 
@@ -110,16 +110,16 @@ O Faren tem duas peças em produção:
 
 | Peça        | Onde roda                  | Como é deployado                                                              |
 | ----------- | -------------------------- | ------------------------------------------------------------------------------ |
-| **Frontend** (`artifacts/faren`) | **GitHub Pages** (CNAME `faren.com.br`) | GitHub Action `.github/workflows/deploy-frontend.yml` builda e publica em todo push pra `main` |
-| **API / Backend** (`artifacts/api-server`) | **Render** (`faren-api-wn1z.onrender.com`), exposta publicamente como `https://api.faren.com.br` via Cloudflare proxied | Render está conectado ao repo e tem `autoDeploy: true` no `render.yaml` — auto-deploya em todo push pra `main` que toque `artifacts/api-server/**`, `lib/**`, `pnpm-lock.yaml` ou `render.yaml` |
+| **Frontend** (`artifacts/faren`) | **GitHub Pages** (CNAME `ikiss.me`) | GitHub Action `.github/workflows/deploy-frontend.yml` builda e publica em todo push pra `main` |
+| **API / Backend** (`artifacts/api-server`) | **Render** (`ikiss-api.onrender.com`), exposta publicamente como `https://api.ikiss.me` via Cloudflare proxied | Render está conectado ao repo e tem `autoDeploy: true` no `render.yaml` — auto-deploya em todo push pra `main` que toque `artifacts/api-server/**`, `lib/**`, `pnpm-lock.yaml` ou `render.yaml` |
 
-**Cloudflare** é usado como **DNS + CDN/proxy + cache de API + Worker de proxy/OG/keep-alive** da zona `faren.com.br`. Existe SIM um Cloudflare Worker chamado **`faren-og-worker`** rodando na rota `faren.com.br/*` (deployado em 2026-04-19). Ele faz três coisas: (1) proxia `/api/*` pra `https://faren-api-wn1z.onrender.com` com cache de borda (90s pra `/api/discover/trending`, 20s pra `/api/users/:u`, header `X-Edge-Cache: HIT/MISS`, conserta CORS pra origens `*.faren.com.br`); (2) detecta UAs de bots sociais em paths de perfil `/{username}` e busca `${API}/${username}` pra renderizar a OG preview server-side com `cache-control: public, max-age=60, swr=300`; (3) tem um `scheduled()` que pinga `${API}/api/discover/trending?limit=1` a cada ~14 minutos pra evitar cold start do Render free. O fonte está versionado em `cloudflare-worker.js` na raiz do repo, mas o que está deployado no edge é uma versão MAIS COMPLETA — pra ver o código real, use `curl -H "X-Auth-Email: $EMAIL_CLOUDFLARE" -H "X-Auth-Key: $CLOUDFLARE_GLOBAL_API_KEY" "https://api.cloudflare.com/client/v4/accounts/$R2_ACCOUNT_ID/workers/scripts/faren-og-worker"`. As Cache Rules abaixo ainda existem na zona mas são em parte redundantes com o cache do Worker. DNS atual:
+**Cloudflare** é usado como **DNS + CDN/proxy + cache de API + Worker de proxy/OG/keep-alive** da zona `ikiss.me`. Existe SIM um Cloudflare Worker chamado **`ikiss-og-worker`** rodando na rota `ikiss.me/*` (deployado em 2026-04-19). Ele faz três coisas: (1) proxia `/api/*` pra `https://ikiss-api.onrender.com` com cache de borda (90s pra `/api/discover/trending`, 20s pra `/api/users/:u`, header `X-Edge-Cache: HIT/MISS`, conserta CORS pra origens `*.ikiss.me`); (2) detecta UAs de bots sociais em paths de perfil `/{username}` e busca `${API}/${username}` pra renderizar a OG preview server-side com `cache-control: public, max-age=60, swr=300`; (3) tem um `scheduled()` que pinga `${API}/api/discover/trending?limit=1` a cada ~14 minutos pra evitar cold start do Render free. O fonte está versionado em `cloudflare-worker.js` na raiz do repo, mas o que está deployado no edge é uma versão MAIS COMPLETA — pra ver o código real, use `curl -H "X-Auth-Email: $EMAIL_CLOUDFLARE" -H "X-Auth-Key: $CLOUDFLARE_GLOBAL_API_KEY" "https://api.cloudflare.com/client/v4/accounts/$R2_ACCOUNT_ID/workers/scripts/ikiss-og-worker"`. As Cache Rules abaixo ainda existem na zona mas são em parte redundantes com o cache do Worker. DNS atual:
 
-- `faren.com.br` (apex) → 4 IPs do GitHub Pages, **proxied**
-- `www.faren.com.br` → `22ez0.github.io`, **proxied**
-- `api.faren.com.br` → `faren-api-wn1z.onrender.com`, **proxied** (toda API pública passa por aqui)
+- `ikiss.me` (apex) → 4 IPs do GitHub Pages, **proxied**
+- `www.ikiss.me` → `22ez0.github.io`, **proxied**
+- `api.ikiss.me` → `ikiss-api.onrender.com`, **proxied** (toda API pública passa por aqui)
 
-Como o `api.faren.com.br` é proxied, o Cloudflare tá no caminho de toda chamada de API e aplica as **Cache Rules** abaixo (zone ruleset id `92b59739dd254ee8813db04ed79f6e0d`):
+Como o `api.ikiss.me` é proxied, o Cloudflare tá no caminho de toda chamada de API e aplica as **Cache Rules** abaixo (zone ruleset id `92b59739dd254ee8813db04ed79f6e0d`):
 
 | Path                  | Edge TTL | Browser TTL | Por quê                                                                 |
 |-----------------------|----------|-------------|-------------------------------------------------------------------------|
@@ -131,7 +131,7 @@ Efeito prático: 1º hit é `MISS` (vai no Render), todos os hits seguintes em 6
 Pra inspecionar/criar/editar cache rules via API:
 
 ```bash
-ZONE=620599580cd4d65037e8d0b5af79c27e
+ZONE=3f8e4388690c7690170ce02480edb571
 RULESET=92b59739dd254ee8813db04ed79f6e0d
 # listar
 curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE/rulesets/$RULESET" \
@@ -144,8 +144,8 @@ curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE/rulesets/$RULESET" \
 1. **Commit + push pra `main`** no GitHub → dispara automaticamente:
    - GitHub Action que builda o frontend e publica no GitHub Pages
    - Webhook do Render que rebuilda e republica a API (se mexeu em arquivos de backend)
-2. **(Opcional)** Purge de cache no Cloudflare pra o `faren.com.br` atualizar imediatamente
-3. Pronto — em ~2-5 min `faren.com.br` reflete as mudanças
+2. **(Opcional)** Purge de cache no Cloudflare pra o `ikiss.me` atualizar imediatamente
+3. Pronto — em ~2-5 min `ikiss.me` reflete as mudanças
 
 ---
 
@@ -153,14 +153,14 @@ curl -s "https://api.cloudflare.com/client/v4/zones/$ZONE/rulesets/$RULESET" \
 
 | Secret name           | Serviço     | Para que serve                                                                                                  |
 | --------------------- | ----------- | --------------------------------------------------------------------------------------------------------------- |
-| `GITHUB_TOKEN`        | GitHub      | Push de commits para `https://github.com/22ez0/faren` (branch `main`). Usado em `git push https://22ez0:$GITHUB_TOKEN@github.com/22ez0/faren.git main` |
-| `CLOUDFLARE_API_TOKEN`| Cloudflare  | Token "principal" da zona `faren.com.br` (zone id `620599580cd4d65037e8d0b5af79c27e`): DNS, leitura, etc. **Não tem** permissão de Cache Purge — para purgar use `CLOUDFLARE_PURGE_TOKEN`. |
+| `GITHUB_TOKEN`        | GitHub      | Push de commits para `https://github.com/22ez0/ikiss` (branch `main`). Usado em `git push https://22ez0:$GITHUB_TOKEN@github.com/22ez0/ikiss.git main` |
+| `CLOUDFLARE_API_TOKEN`| Cloudflare  | Token "principal" da zona `ikiss.me` (zone id `3f8e4388690c7690170ce02480edb571`): DNS, leitura, etc. **Não tem** permissão de Cache Purge — para purgar use `CLOUDFLARE_PURGE_TOKEN`. |
 | `CLOUDFLARE_PURGE_TOKEN`| Cloudflare | Token **dedicado a purgar o cache** da mesma zona (`Zone.Cache Purge`). É o token usado pelo passo de purge no fim do deploy do frontend. |
-| `RENDER_API_KEY`      | Render      | Disparar deploys e ler status do service `srv-d7gjdc5ckfvc73ftk79g` (`faren-api-wn1z.onrender.com`)             |
+| `RENDER_API_KEY`      | Render      | Disparar deploys e ler status do service `srv-d7gjdc5ckfvc73ftk79g` (`ikiss-api.onrender.com`)             |
 | `R2_ACCOUNT_ID`       | Cloudflare R2 | Account ID `5a9a17dc69ada45f32c4aa36d4e8fdd9` — endpoint S3-compatível: `https://<accountId>.r2.cloudflarestorage.com` |
 | `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | Cloudflare R2 | Credenciais S3-compatible (token "Object Read & Write") usadas pelo backend pra fazer upload de avatares/backgrounds |
 | `R2_BUCKET`           | Cloudflare R2 | Nome do bucket: `faren-media`                                                                                   |
-| `R2_PUBLIC_URL`       | Cloudflare R2 | URL pública do bucket: `https://pub-49759bd8e09c4e0b89e475d23d273d2f.r2.dev` (R2.dev subdomain). Pode ser trocado depois por `cdn.faren.com.br` se quiser custom domain |
+| `R2_PUBLIC_URL`       | Cloudflare R2 | URL pública do bucket: `https://pub-49759bd8e09c4e0b89e475d23d273d2f.r2.dev` (R2.dev subdomain). Pode ser trocado depois por `cdn.ikiss.me` se quiser custom domain |
 | `PROD_DATABASE_URL`   | Render Postgres | Connection string do Postgres de **produção** (External Database URL do Render). **NÃO** é o `DATABASE_URL` da sandbox local. Usado apenas pra rodar scripts de manutenção/migração contra prod a partir do Replit. |
 
 ---
@@ -208,10 +208,10 @@ Se aparecer `b64 > 0` no futuro (alguém ainda salvou data URI direto), rodar de
 ```bash
 git add -A
 git commit -m "mensagem"
-git push https://22ez0:$GITHUB_TOKEN@github.com/22ez0/faren.git main
+git push https://22ez0:$GITHUB_TOKEN@github.com/22ez0/ikiss.git main
 ```
 Após o push:
-- O workflow `deploy-frontend.yml` builda e publica `faren.com.br` no GitHub Pages
+- O workflow `deploy-frontend.yml` builda e publica `ikiss.me` no GitHub Pages
 - Se o push tocou `artifacts/api-server/**`, `lib/**`, `pnpm-lock.yaml` ou `render.yaml`, o Render auto-deploya a API
 
 ### Disparar deploy manual no Render (sem precisar de novo push)
@@ -230,13 +230,13 @@ curl -s "https://api.render.com/v1/services/srv-d7gjdc5ckfvc73ftk79g/deploys?lim
 
 ### Listar registros DNS no Cloudflare
 ```bash
-curl -s "https://api.cloudflare.com/client/v4/zones/620599580cd4d65037e8d0b5af79c27e/dns_records" \
+curl -s "https://api.cloudflare.com/client/v4/zones/3f8e4388690c7690170ce02480edb571/dns_records" \
   -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
 ```
 
 ### Purge de cache no Cloudflare (após deploy)
 ```bash
-curl -sX POST "https://api.cloudflare.com/client/v4/zones/620599580cd4d65037e8d0b5af79c27e/purge_cache" \
+curl -sX POST "https://api.cloudflare.com/client/v4/zones/3f8e4388690c7690170ce02480edb571/purge_cache" \
   -H "Authorization: Bearer $CLOUDFLARE_PURGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"purge_everything":true}'
@@ -248,14 +248,14 @@ curl -sX POST "https://api.cloudflare.com/client/v4/zones/620599580cd4d65037e8d0
 
 ## Escopos dos tokens do Cloudflare
 
-Existem **dois tokens separados** para a mesma zona `faren.com.br` (zone id `620599580cd4d65037e8d0b5af79c27e`), com escopos distintos por segurança (princípio do menor privilégio):
+Existem **dois tokens separados** para a mesma zona `ikiss.me` (zone id `3f8e4388690c7690170ce02480edb571`), com escopos distintos por segurança (princípio do menor privilégio):
 
 ### `CLOUDFLARE_API_TOKEN` — token principal (DNS / leitura)
 
 | Permission   | Resource                                | Para quê                    |
 | ------------ | --------------------------------------- | --------------------------- |
-| `Zone:Read`  | Specific zone → `faren.com.br`          | Verificar metadados da zona |
-| `DNS:Edit`   | Specific zone → `faren.com.br`          | Criar/editar registros DNS  |
+| `Zone:Read`  | Specific zone → `ikiss.me`          | Verificar metadados da zona |
+| `DNS:Edit`   | Specific zone → `ikiss.me`          | Criar/editar registros DNS  |
 
 Esse token **não tem** `Cache Purge` por design — purge usa o token dedicado abaixo.
 
@@ -263,16 +263,16 @@ Esse token **não tem** `Cache Purge` por design — purge usa o token dedicado 
 
 | Permission         | Resource                                | Para quê                                          |
 | ------------------ | --------------------------------------- | ------------------------------------------------- |
-| **`Cache Purge`**  | Specific zone → `faren.com.br`          | Purgar o cache do CDN ao final de cada deploy     |
+| **`Cache Purge`**  | Specific zone → `ikiss.me`          | Purgar o cache do CDN ao final de cada deploy     |
 
 ### Como gerar / rotacionar qualquer um dos tokens
 
 1. Cloudflare Dashboard → **My Profile** → **API Tokens** → **Create Token** → **Create Custom Token**
 2. Adicione apenas as permissions da tabela correspondente (DNS ou Purge)
-3. Em **Zone Resources** selecione **Include → Specific zone → `faren.com.br`**
+3. Em **Zone Resources** selecione **Include → Specific zone → `ikiss.me`**
 4. Crie, copie o valor e atualize nos dois lugares:
    - **Replit Secrets** → `CLOUDFLARE_API_TOKEN` ou `CLOUDFLARE_PURGE_TOKEN`
-   - **GitHub repo `22ez0/faren`** → Settings → Secrets and variables → Actions → mesmo nome (já cadastrados, basta atualizar)
+   - **GitHub repo `22ez0/ikiss`** → Settings → Secrets and variables → Actions → mesmo nome (já cadastrados, basta atualizar)
 
 ### Como validar
 
@@ -282,7 +282,7 @@ curl -s "https://api.cloudflare.com/client/v4/user/tokens/verify" -H "Authorizat
 curl -s "https://api.cloudflare.com/client/v4/user/tokens/verify" -H "Authorization: Bearer $CLOUDFLARE_PURGE_TOKEN"
 
 # 2) O token de purge consegue mesmo purgar?
-curl -sX POST "https://api.cloudflare.com/client/v4/zones/620599580cd4d65037e8d0b5af79c27e/purge_cache" \
+curl -sX POST "https://api.cloudflare.com/client/v4/zones/3f8e4388690c7690170ce02480edb571/purge_cache" \
   -H "Authorization: Bearer $CLOUDFLARE_PURGE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"purge_everything":true}'
@@ -295,20 +295,20 @@ curl -sX POST "https://api.cloudflare.com/client/v4/zones/620599580cd4d65037e8d0
 
 A action `.github/workflows/deploy-frontend.yml` tem um passo final **`Purge Cloudflare cache`** que roda depois do deploy no GitHub Pages. Ele:
 
-- Usa os secrets do GitHub **`CLOUDFLARE_PURGE_TOKEN`** e `CLOUDFLARE_ZONE_ID` (já cadastrados no repo `22ez0/faren`)
+- Usa os secrets do GitHub **`CLOUDFLARE_PURGE_TOKEN`** e `CLOUDFLARE_ZONE_ID` (já cadastrados no repo `22ez0/ikiss`)
 - Chama `POST /zones/$CF_ZONE/purge_cache` com `{"purge_everything":true}`
 - Se o purge falhar por qualquer motivo, emite um **warning** mas **não falha o deploy** — o site continua sendo publicado e só o purge é pulado
-- Quando o purge falha, o passo seguinte **`Notify on Cloudflare purge failure`** abre (ou comenta, se já estiver aberta) uma issue no `22ez0/faren` com o label `cloudflare-purge-failure`, contendo o HTTP status, o corpo da resposta da Cloudflare, o commit e o link da run — assim ninguém precisa ficar olhando o log do Actions para perceber que o cache não foi limpo
+- Quando o purge falha, o passo seguinte **`Notify on Cloudflare purge failure`** abre (ou comenta, se já estiver aberta) uma issue no `22ez0/ikiss` com o label `cloudflare-purge-failure`, contendo o HTTP status, o corpo da resposta da Cloudflare, o commit e o link da run — assim ninguém precisa ficar olhando o log do Actions para perceber que o cache não foi limpo
 
 ## Alerta automático quando o deploy do backend (Render) falha
 
 A action `.github/workflows/deploy-backend.yml` segue o **mesmo padrão** do alerta de purge da Cloudflare, mas para o deploy real do backend no Render. Como o Render tem `autoDeploy: true` e dispara o build via webhook nativo (não pelo Actions), o workflow:
 
-- Usa o secret do GitHub **`RENDER_API_KEY`** (mesmo valor do Replit Secret de mesmo nome — precisa estar cadastrado em `Settings → Secrets and variables → Actions` do repo `22ez0/faren`)
+- Usa o secret do GitHub **`RENDER_API_KEY`** (mesmo valor do Replit Secret de mesmo nome — precisa estar cadastrado em `Settings → Secrets and variables → Actions` do repo `22ez0/ikiss`)
 - Espera até ~90s pra achar o deploy do Render cujo `commit.id` bate com o `github.sha` do push. Se não achar, **só** cai no fallback de "pegar o deploy mais recente" quando o workflow foi disparado manualmente (`workflow_dispatch`); em pushes reais a gente prefere abortar o monitoramento e logar warning, pra não atrelar o alerta a um deploy de outro commit (corrida em pushes consecutivos)
 - Faz polling em `GET /v1/services/$SERVICE_ID/deploys/$DEPLOY_ID` por até ~25 minutos até o status virar terminal (`live`, `deactivated`, `build_failed`, `update_failed`, `pre_deploy_failed`, `canceled`)
 - Se o status final for `live` (sucesso) ou `deactivated` (substituído por outro deploy mais novo), não faz nada
-- Se for `build_failed`, `update_failed`, `pre_deploy_failed` ou `canceled` (ou se o polling estourar o timeout), o passo **`Notify on Render deploy failure`** abre (ou comenta) uma issue no `22ez0/faren` com o label `render-deploy-failure`, contendo o `deploy id`, o status final, o commit, o link da run do GitHub Actions e o link `https://dashboard.render.com/web/$SERVICE_ID/deploys/$DEPLOY_ID` pra ir direto nos logs
+- Se for `build_failed`, `update_failed`, `pre_deploy_failed` ou `canceled` (ou se o polling estourar o timeout), o passo **`Notify on Render deploy failure`** abre (ou comenta) uma issue no `22ez0/ikiss` com o label `render-deploy-failure`, contendo o `deploy id`, o status final, o commit, o link da run do GitHub Actions e o link `https://dashboard.render.com/web/$SERVICE_ID/deploys/$DEPLOY_ID` pra ir direto nos logs
 - O workflow **nunca falha o push pra `main`** — `exit 0` em todos os casos, igual o de purge
 
 ---
@@ -318,10 +318,10 @@ A action `.github/workflows/deploy-backend.yml` segue o **mesmo padrão** do ale
 O alerta de `render-deploy-failure` só dispara quando o **build** do Render quebra. Mas o plano free do Render **derruba a instância depois de inatividade** e às vezes ela não volta sozinha (cold start travado, healthcheck falhando, banco indisponível). Pra esses casos a action `.github/workflows/monitor-api-health.yml` faz monitoramento ativo:
 
 - Roda em cron `*/5 * * * *` (a cada 5 min, mais ou menos — o scheduler do GitHub Actions costuma atrasar alguns minutos em horários de pico, sem problema)
-- Em cada execução, bate em `https://faren-api-wn1z.onrender.com/api/healthz` até 5 vezes seguidas com 30s entre tentativas (≈2 min de janela). Só considera "fora do ar" se **todas** falharem — assim absorve cold start normal do plano free sem gerar falso positivo
+- Em cada execução, bate em `https://ikiss-api.onrender.com/api/healthz` até 5 vezes seguidas com 30s entre tentativas (≈2 min de janela). Só considera "fora do ar" se **todas** falharem — assim absorve cold start normal do plano free sem gerar falso positivo
 - Aceita como saudável apenas `HTTP 200` com `"ok"` no corpo (o endpoint retorna `{"status":"ok"}`)
-- Manda um **User-Agent custom** (`faren-uptime-monitor/1.0 …`) porque o middleware `botBlock` em `artifacts/api-server/src/app.ts` devolve 403 pra User-Agents que casem com `/curl|wget|python-requests|headless|playwright|…/i` quando `ENABLE_BOT_BLOCKING=true` (caso da prod). Sem esse UA o monitor virava falso positivo eterno. Se um dia quiser endurecer mais o `blockedUserAgents`, lembre de manter o prefixo `faren-uptime-monitor` fora da regex (ou exempte explicitamente o path `/api/healthz`)
-- Se ficar fora do ar e **não houver** issue aberta com o label `api-down`, abre uma nova issue em `22ez0/faren` com título `API fora do ar (faren-api-wn1z.onrender.com)`, contendo o último HTTP status visto, primeiros 500 chars do corpo, link da run e link do dashboard do Render
+- Manda um **User-Agent custom** (`ikiss-uptime-monitor/1.0 …`) porque o middleware `botBlock` em `artifacts/api-server/src/app.ts` devolve 403 pra User-Agents que casem com `/curl|wget|python-requests|headless|playwright|…/i` quando `ENABLE_BOT_BLOCKING=true` (caso da prod). Sem esse UA o monitor virava falso positivo eterno. Se um dia quiser endurecer mais o `blockedUserAgents`, lembre de manter o prefixo `ikiss-uptime-monitor` fora da regex (ou exempte explicitamente o path `/api/healthz`)
+- Se ficar fora do ar e **não houver** issue aberta com o label `api-down`, abre uma nova issue em `22ez0/ikiss` com título `API fora do ar (ikiss-api.onrender.com)`, contendo o último HTTP status visto, primeiros 500 chars do corpo, link da run e link do dashboard do Render
 - Se já houver issue aberta com esse label, **não comenta de novo** — evita ruído enquanto a API continua caída
 - Quando o healthz volta a responder `200 ok` e existe issue aberta, comenta "API voltou" + link da run e **fecha a issue** automaticamente
 - Usa só o `GITHUB_TOKEN` padrão (permissão `issues: write`) — **não precisa** de `RENDER_API_KEY` nem secret extra
@@ -331,22 +331,22 @@ O alerta de `render-deploy-failure` só dispara quando o **build** do Render que
 
 ## Arquivos de configuração de deploy (no repo)
 
-- **`.github/workflows/deploy-frontend.yml`** — builda `@workspace/faren` com `VITE_API_URL=https://faren-api-wn1z.onrender.com` e publica em `gh-pages` com CNAME `faren.com.br`
-- **`.github/workflows/deploy-backend.yml`** — o Render auto-deploya via webhook nativo; o workflow então **fica fazendo polling na API do Render** (usa o secret `RENDER_API_KEY`) e, se o deploy terminar em `build_failed`, `update_failed`, `pre_deploy_failed` ou `canceled`, abre/atualiza uma issue no `22ez0/faren` com o label `render-deploy-failure` (mesmo padrão da `cloudflare-purge-failure`). A issue inclui o `deploy id`, o status final, o link dos logs no dashboard do Render e o commit. O workflow nunca falha o push pra `main`. Roda quando muda `artifacts/api-server/**`, `lib/**`, `pnpm-lock.yaml` ou `render.yaml`
-- **`.github/workflows/monitor-api-health.yml`** — cron a cada 5 min que faz `GET /api/healthz` em produção (5 retries × 30s). Se ficar fora do ar abre issue com label `api-down` em `22ez0/faren`; quando volta, comenta e fecha. Pega cold start travado, healthcheck quebrado e banco indisponível — coisas que o `deploy-backend.yml` não detecta porque o build em si passou
-- **`render.yaml`** — define o service `faren-api` (Node, região Oregon, plano free, healthcheck `/api/healthz`, banco Postgres `faren-db` e todas as env vars de produção)
+- **`.github/workflows/deploy-frontend.yml`** — builda `@workspace/faren` com `VITE_API_URL=https://ikiss-api.onrender.com` e publica em `gh-pages` com CNAME `ikiss.me`
+- **`.github/workflows/deploy-backend.yml`** — o Render auto-deploya via webhook nativo; o workflow então **fica fazendo polling na API do Render** (usa o secret `RENDER_API_KEY`) e, se o deploy terminar em `build_failed`, `update_failed`, `pre_deploy_failed` ou `canceled`, abre/atualiza uma issue no `22ez0/ikiss` com o label `render-deploy-failure` (mesmo padrão da `cloudflare-purge-failure`). A issue inclui o `deploy id`, o status final, o link dos logs no dashboard do Render e o commit. O workflow nunca falha o push pra `main`. Roda quando muda `artifacts/api-server/**`, `lib/**`, `pnpm-lock.yaml` ou `render.yaml`
+- **`.github/workflows/monitor-api-health.yml`** — cron a cada 5 min que faz `GET /api/healthz` em produção (5 retries × 30s). Se ficar fora do ar abre issue com label `api-down` em `22ez0/ikiss`; quando volta, comenta e fecha. Pega cold start travado, healthcheck quebrado e banco indisponível — coisas que o `deploy-backend.yml` não detecta porque o build em si passou
+- **`render.yaml`** — define o service `faren-api` (Node, região Oregon, plano free, healthcheck `/api/healthz`) e todas as env vars de produção — adaptado para ikiss.me
 
 ---
 
 ## IDs úteis
 
-- **GitHub repo**: `22ez0/faren` (branch principal: `main`)
-- **GitHub Pages CNAME**: `faren.com.br`
+- **GitHub repo**: `22ez0/ikiss` (branch principal: `main`)
+- **GitHub Pages CNAME**: `ikiss.me`
 - **Render service id (api)**: `srv-d7gjdc5ckfvc73ftk79g`
-- **Render service URL (api)**: `https://faren-api-wn1z.onrender.com`
+- **Render service URL (api)**: `https://ikiss-api.onrender.com`
 - **Render Postgres (db)**: `faren-db` (definido no `render.yaml`)
-- **Cloudflare zone id**: `620599580cd4d65037e8d0b5af79c27e`
-- **Cloudflare zone name**: `faren.com.br` (uso: DNS + CDN — **não** há Worker)
+- **Cloudflare zone id**: `3f8e4388690c7690170ce02480edb571`
+- **Cloudflare zone name**: `ikiss.me` (uso: DNS + CDN — **não** há Worker)
 
 ---
 

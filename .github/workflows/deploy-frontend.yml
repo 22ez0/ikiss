@@ -35,7 +35,7 @@ jobs:
         env:
           BASE_PATH: /
           PORT: 5173
-          VITE_API_URL: https://api.faren.com.br
+          VITE_API_URL: https://api.ikiss.me
           VITE_TURNSTILE_SITE_KEY: 0x4AAAAAADCou66RkKmd1DwX
           NODE_ENV: production
 
@@ -44,7 +44,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: artifacts/faren/dist/public
-          cname: faren.com.br
+          cname: ikiss.me
           force_orphan: true
 
       - name: Purge Cloudflare cache
@@ -79,7 +79,7 @@ jobs:
           body=$(cat /tmp/cf.json 2>/dev/null || echo "(no response body)")
           reason=""
           if [ "$response" != "200" ]; then
-            reason="Cloudflare purge failed (HTTP $response). Verify the token has the 'Zone.Cache Purge' permission on the faren.com.br zone."
+            reason="Cloudflare purge failed (HTTP $response). Verify the token has the 'Zone.Cache Purge' permission on the ikiss.me zone."
           elif ! grep -q '"success":true' /tmp/cf.json; then
             reason="Cloudflare purge returned success=false. See response body."
           fi
@@ -130,7 +130,7 @@ jobs:
             printf '**Resposta da Cloudflare:**\n'
             printf '```\n%s\n```\n\n' "$CF_BODY"
             printf '### Como resolver\n'
-            printf '1. Confirme que o secret `CLOUDFLARE_PURGE_TOKEN` ainda é válido e tem a permissão **Zone.Cache Purge** na zona `faren.com.br`.\n'
+            printf '1. Confirme que o secret `CLOUDFLARE_PURGE_TOKEN` ainda é válido e tem a permissão **Zone.Cache Purge** na zona `ikiss.me`.\n'
             printf '2. Rode o purge manualmente (ver `replit-leia-aqui.md` → "Purge automático no GitHub Actions").\n'
             printf '3. Feche essa issue depois que o próximo deploy passar com sucesso.\n'
           } > "$body_file"

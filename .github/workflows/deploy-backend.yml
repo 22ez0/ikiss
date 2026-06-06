@@ -21,7 +21,7 @@ jobs:
       - name: Render auto-deploy triggered
         run: |
           echo "Render is connected to this repo and auto-deploys on push to main."
-          echo "Service: https://faren-api-wn1z.onrender.com"
+          echo "Service: https://api.ikiss.me (via Render → ikiss-api.onrender.com)"
           echo "No additional step required to trigger the deploy."
 
       - name: Warn if RENDER_API_KEY is missing

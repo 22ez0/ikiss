@@ -1,4 +1,4 @@
-// Faren — Cloudflare Worker on route faren.com.br/*
+// Ikiss — Cloudflare Worker on route ikiss.me/*
 // Last sync from production: 2026-04-27
 // Five responsibilities:
 //   1. Proxy /api/* to one of N Render backends (failover on 5xx/timeout)
@@ -175,9 +175,9 @@ export default {
 
       const response = new Response(apiRes.body, apiRes);
 
-      // CORS for faren.com.br
+      // CORS for ikiss.me
       const reqOrigin = request.headers.get("origin") || "";
-      if (reqOrigin.includes("faren.com.br")) {
+      if (reqOrigin.includes("ikiss.me")) {
         response.headers.set("Access-Control-Allow-Origin", reqOrigin);
         response.headers.set("Access-Control-Allow-Credentials", "true");
         response.headers.set("Vary", "Origin");

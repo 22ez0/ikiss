@@ -22,7 +22,7 @@ jobs:
       - name: Probe /api/healthz with retries
         id: probe
         env:
-          HEALTH_URL: https://api.faren.com.br/api/healthz
+          HEALTH_URL: https://api.ikiss.me/api/healthz
         run: |
           set -u
           # Faz até 5 tentativas espaçadas de 30s (~2 min). Render free tem
@@ -39,7 +39,7 @@ jobs:
           # "curl/X.Y" e o monitor virava falso positivo eterno. Por isso
           # mandamos um UA dedicado, fora da lista de bloqueio. Veja
           # `artifacts/api-server/src/app.ts` (`blockedUserAgents`).
-          ua="faren-uptime-monitor/1.0 (+https://github.com/22ez0/faren)"
+          ua="ikiss-uptime-monitor/1.0 (+https://github.com/22ez0/ikiss)"
           for i in $(seq 1 "$attempts"); do
             echo "[$i/$attempts] GET $HEALTH_URL"
             # -m 30: timeout total de 30s por tentativa
@@ -82,12 +82,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          HEALTH_URL: https://api.faren.com.br/api/healthz
+          HEALTH_URL: https://api.ikiss.me/api/healthz
           LAST_STATUS: ${{ steps.probe.outputs.last_status }}
           LAST_BODY: ${{ steps.probe.outputs.last_body }}
         run: |
           set -e
-          title="API fora do ar (faren-api-wn1z.onrender.com)"
+          title="API fora do ar (api.ikiss.me)"
           label="api-down"
 
           gh label create "$label" \
@@ -119,7 +119,7 @@ jobs:
             printf '1. Abra o dashboard do Render no link acima e veja se o service está `Live`, `Suspended` ou em `Deploy in progress`.\n'
             printf '2. Veja os logs do service — cold start travado costuma aparecer como timeout no boot ou erro de conexão com o Postgres.\n'
             printf '3. Se for cold start travado, basta um `Manual Deploy → Clear build cache & deploy` ou reiniciar o service.\n'
-            printf '4. Se o banco caiu, veja o status do Postgres `faren-db` no mesmo dashboard.\n'
+            printf '4. Se o banco caiu, veja o status do Postgres (Neon) em console.neon.tech.\n'
             printf '5. O monitor vai **comentar e fechar essa issue automaticamente** assim que `/api/healthz` voltar a responder `200 {"status":"ok"}`.\n'
           } > "$body_file"
 
@@ -143,10 +143,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          HEALTH_URL: https://api.faren.com.br/api/healthz
+          HEALTH_URL: https://api.ikiss.me/api/healthz
         run: |
           set -e
-          title="API fora do ar (faren-api-wn1z.onrender.com)"
+          title="API fora do ar (api.ikiss.me)"
           label="api-down"
 
           existing=$(gh issue list \
