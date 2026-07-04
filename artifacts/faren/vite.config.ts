@@ -9,8 +9,11 @@ const port = rawPort ? Number(rawPort) : 3000;
 
 const basePath = process.env.BASE_PATH ?? "/";
 
+// Em dev no Replit (REPL_ID presente), usar a API local que roda na porta 8000.
+// Em produção ou fora do Replit, usa api.ikiss.me (ou VITE_DEV_API_PROXY explícito).
 const apiProxyTarget =
-  process.env.VITE_DEV_API_PROXY ?? "https://api.ikiss.me";
+  process.env.VITE_DEV_API_PROXY ??
+  (process.env.REPL_ID ? "http://localhost:8000" : "https://api.ikiss.me");
 
 export default defineConfig({
   base: basePath,
