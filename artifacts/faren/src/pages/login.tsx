@@ -94,19 +94,13 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-5">
         <Link href="/">
           <span className="text-sm font-bold tracking-[0.25em] uppercase text-white hover:opacity-70 transition-opacity">IKISS</span>
         </Link>
         <Link href="/register" className="nav-link">Criar conta</Link>
       </nav>
-
-      <div
-        className="fixed inset-0 bg-cover bg-center opacity-[0.08]"
-        style={{ backgroundImage: "url(https://images.unsplash.com/photo-1518770660439-4636190af475?w=1920&q=80)" }}
-      />
-      <div className="fixed inset-0 bg-gradient-to-br from-black via-black to-black/90" />
 
       <div className="flex-1 flex items-center justify-center px-6 relative z-10">
         <motion.div
@@ -180,8 +174,8 @@ export default function Login() {
           </p>
           <p className="label-caps text-center">
             Esqueceu a senha?{" "}
-            <Link href="/suporte" className="text-white/60 hover:text-white transition-colors">
-              Pedir ajuda →
+            <Link href="/forgot-password" className="text-white/60 hover:text-white transition-colors">
+              Recuperar acesso →
             </Link>
           </p>
         </motion.div>

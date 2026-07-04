@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useGetTrendingProfiles, getUserByUsername, getGetUserByUsernameQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Users, Heart, Volume2, VolumeX, Check, X, Loader2, LayoutDashboard, LogOut, User as UserIcon } from "lucide-react";
+import { ArrowRight, Users, Heart, Check, X, Loader2, LayoutDashboard, LogOut, User as UserIcon } from "lucide-react";
 import { ProfileCardMedia } from "@/components/ProfileCardMedia";
 import { useAuth } from "@/lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const RESERVED_USERNAMES = new Set(['keefaren','admin','administrator','api','dashboard','login','register','profile','settings','support','root','ikiss','keef','null','comunidade','community','explore','feed']);
-import heroVideo from "@assets/pinterest_1117033513847707049_1780756845415.mp4";
 
 const PT = {
   nav: { dashboard: "Dashboard", discover: "Descobrir", login: "Entrar", cta: "Criar Seu Link", myProfile: "Meu perfil", logout: "Sair" },
@@ -54,11 +53,6 @@ const EN = {
 export default function Home() {
   const { data: trendingProfiles, isLoading } = useGetTrendingProfiles({ limit: 6 }, { query: { staleTime: 120_000, gcTime: 300_000 } });
   const [lang, setLang] = useState<'PT' | 'EN'>(() => (localStorage.getItem('ikiss_lang') as any) || 'PT');
-  const [audioActivated, setAudioActivated] = useState(false);
-  const heroVideoARef = useRef<HTMLVideoElement>(null);
-  const heroVideoBRef = useRef<HTMLVideoElement>(null);
-  const [muted, setMuted] = useState(false);
-  const [showB, setShowB] = useState(false);
   const [claimUsername, setClaimUsername] = useState('');
   const [claimStatus, setClaimStatus] = useState<'idle' | 'invalid' | 'reserved' | 'checking' | 'available' | 'taken' | 'error'>('idle');
   const [, navigate] = useLocation();
@@ -109,70 +103,6 @@ export default function Home() {
     const u = claimUsername.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
     if (!u || claimStatus === 'taken' || claimStatus === 'invalid' || claimStatus === 'reserved') return;
     navigate(`/register?username=${encodeURIComponent(u)}`);
-  };
-
-  // Seamless loop: two stacked <video> elements, one starts a tiny moment before the other ends, fading between them
-  useEffect(() => {
-    const a = heroVideoARef.current;
-    const b = heroVideoBRef.current;
-    if (!a || !b) return;
-    const FADE = 0.45; // seconds before end to start swap
-    let active: "A" | "B" = "A";
-    let rafId = 0;
-
-    const startBoth = async () => {
-      try { a.currentTime = 0; await a.play(); } catch {}
-      try { b.currentTime = 0; b.pause(); } catch {}
-    };
-
-    const tick = () => {
-      const cur = active === "A" ? a : b;
-      const other = active === "A" ? b : a;
-      if (cur.duration && cur.currentTime >= cur.duration - FADE && other.paused) {
-        other.currentTime = 0;
-        other.play().catch(() => {});
-      }
-      if (cur.duration && cur.currentTime >= cur.duration - 0.05) {
-        active = active === "A" ? "B" : "A";
-        setShowB(active === "B");
-        cur.pause();
-        cur.currentTime = 0;
-      }
-      rafId = requestAnimationFrame(tick);
-    };
-
-    if (a.readyState >= 1) startBoth();
-    else a.addEventListener("loadedmetadata", startBoth, { once: true });
-    rafId = requestAnimationFrame(tick);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      a.removeEventListener("loadedmetadata", startBoth);
-    };
-  }, []);
-
-  // Unmute both videos and mark audio as activated (requires user gesture)
-  const activateAudio = () => {
-    const a = heroVideoARef.current;
-    const b = heroVideoBRef.current;
-    if (a) { a.muted = false; a.volume = 1; }
-    if (b) { b.muted = false; b.volume = 1; }
-    setMuted(false);
-    setAudioActivated(true);
-  };
-
-  const toggleMute = () => {
-    const newMuted = !muted;
-    const a = heroVideoARef.current;
-    const b = heroVideoBRef.current;
-    if (a) a.muted = newMuted;
-    if (b) b.muted = newMuted;
-    setMuted(newMuted);
-  };
-
-  const handleAudioButton = () => {
-    if (!audioActivated) activateAudio();
-    else toggleMute();
   };
 
   // Discord OAuth2 callback handler — triggered when Discord redirects back with ?code=
@@ -303,46 +233,8 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* ── FULLSCREEN VIDEO BACKGROUND ────────────────────────── */}
-      <video
-        ref={heroVideoARef}
-        autoPlay
-        muted
-        playsInline
-        className="fixed inset-0 w-full h-full object-cover pointer-events-none"
-        style={{ zIndex: 1, opacity: showB ? 0 : 1, transition: 'opacity 450ms' }}
-      >
-        <source src={heroVideo} type="video/mp4" />
-      </video>
-      <video
-        ref={heroVideoBRef}
-        muted
-        playsInline
-        className="fixed inset-0 w-full h-full object-cover pointer-events-none"
-        style={{ zIndex: 1, opacity: showB ? 1 : 0, transition: 'opacity 450ms' }}
-      >
-        <source src={heroVideo} type="video/mp4" />
-      </video>
-      {/* Dark overlay across entire page */}
-      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 2, background: 'rgba(0,0,0,0.35)' }} />
-
       {/* ── HERO ──────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-6">
-
-        <div className="absolute bottom-6 right-6 flex flex-col items-end gap-1.5" style={{ zIndex: 4 }}>
-          {!audioActivated && (
-            <span className="text-[9px] tracking-[0.18em] uppercase text-white/40 select-none">
-              clique para som
-            </span>
-          )}
-          <button
-            onClick={handleAudioButton}
-            aria-label={!audioActivated ? "Clique para ativar música" : muted ? "Ativar som" : "Silenciar"}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/70 border border-white/15 text-white/70 hover:text-white backdrop-blur-sm transition-all"
-          >
-            {!audioActivated ? <VolumeX className="w-4 h-4 opacity-40" /> : muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
-        </div>
 
         <div className="relative flex flex-col items-center text-center max-w-5xl mx-auto" style={{ zIndex: 3 }}>
           <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="label-caps mb-8" style={{ textShadow: '0 0 20px rgba(0,0,0,0.9), 0 2px 8px rgba(0,0,0,0.8)' }}>

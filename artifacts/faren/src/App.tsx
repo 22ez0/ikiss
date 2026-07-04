@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { AuthProvider } from "@/lib/auth";
 import { useEffect } from "react";
+import { SiteBackground } from "@/components/SiteBackground";
 
 import Home from "@/pages/home";
 import Login from "@/pages/login";
@@ -17,6 +18,9 @@ import ProfilePage from "@/pages/profile";
 import DevKeefnow from "@/pages/devkeefnow";
 import Support from "@/pages/support";
 import EmailsNoah from "@/pages/emailsnoah";
+import VerifyEmail from "@/pages/verify-email";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,6 +47,9 @@ function Router() {
       <Route path="/devkeefnow" component={DevKeefnow} />
       <Route path="/keefaren" component={DevKeefnow} />
       <Route path="/emailsnoah" component={EmailsNoah} />
+      <Route path="/verify-email" component={VerifyEmail} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/:username" component={ProfilePage} />
       <Route component={NotFound} />
     </Switch>
@@ -59,7 +66,6 @@ function App() {
       } catch {}
     };
     ping();
-    // Render free tier sleeps after ~15min idle. Keep warm every 4min while tab is open.
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') ping();
     }, 4 * 60_000);
@@ -76,6 +82,7 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AuthProvider>
+            <SiteBackground />
             <Router />
           </AuthProvider>
         </WouterRouter>

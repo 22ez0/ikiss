@@ -13,8 +13,10 @@ import {
   Globe2,
   ExternalLink,
   Pencil,
+  Mail,
+  X,
 } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { SectionHeader } from "@/components/edit/VisualOptionCard";
@@ -83,8 +85,34 @@ export default function Dashboard() {
   const linksCount = Array.isArray((profile as any)?.links) ? (profile as any).links.length : 0;
   const badgesCount = Array.isArray((profile as any)?.badges) ? (profile as any).badges.length : 0;
 
+  const [emailBannerDismissed, setEmailBannerDismissed] = useState(false);
+  const showEmailBanner = !emailBannerDismissed && (
+    window.location.search.includes("emailVerification=pending") ||
+    (user as any)?.emailVerified === false
+  );
+
   return (
     <DashboardLayout active="overview">
+      {/* ── Email Verification Banner ─────────────────────── */}
+      {showEmailBanner && (
+        <div className="mb-6 flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
+          <Mail className="w-4 h-4 text-amber-400 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-amber-200 font-medium">Verifique seu email</p>
+            <p className="text-xs text-amber-200/60 mt-0.5">
+              Enviamos um link para <strong>{user?.email ?? "seu email"}</strong>. Clique nele para confirmar sua conta.
+            </p>
+          </div>
+          <button
+            onClick={() => setEmailBannerDismissed(true)}
+            className="text-amber-400/60 hover:text-amber-400 transition-colors flex-shrink-0"
+            aria-label="Fechar"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* ── Title ───────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-4 mb-8">
         <div>

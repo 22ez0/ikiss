@@ -6,7 +6,7 @@ import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, ArrowLeft, RotateCw } from "lucide-react";
+import { ArrowRight, ArrowLeft, RotateCw, Mail } from "lucide-react";
 
 const RESERVED = new Set(['keefaren','admin','administrator','api','dashboard','login','register','profile','settings','support','root','ikiss','keef','null','comunidade','community','explore','feed']);
 
@@ -177,8 +177,13 @@ export default function Register() {
         }
         throw new Error(body.error || "Ocorreu um erro");
       }
-      login(body.token);
-      setLocation("/dashboard");
+      if (body.emailVerificationRequired) {
+        login(body.token);
+        setLocation("/dashboard?emailVerification=pending");
+      } else {
+        login(body.token);
+        setLocation("/dashboard");
+      }
     } catch (err: any) {
       toast({ title: "Falha no cadastro", description: err.message || "Ocorreu um erro", variant: "destructive" });
       if (window.turnstile && widgetIdRef.current) {
@@ -191,19 +196,13 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-5">
         <Link href="/">
           <span className="text-sm font-bold tracking-[0.25em] uppercase text-white hover:opacity-70 transition-opacity">IKISS</span>
         </Link>
         <Link href="/login" className="nav-link">Entrar</Link>
       </nav>
-
-      <div
-        className="fixed inset-0 bg-cover bg-center opacity-[0.06]"
-        style={{ backgroundImage: "url(https://images.unsplash.com/photo-1614729939124-032d1e6c9945?w=1920&q=80)" }}
-      />
-      <div className="fixed inset-0 bg-gradient-to-br from-black via-black to-black/90" />
 
       <div className="flex-1 flex items-center justify-center px-6 relative z-10">
         <motion.div
