@@ -1,0 +1,2 @@
+- [GitHub push auth](github-push-auth.md) — usar GITHUB_PERSONAL_ACCESS_TOKEN (não GITHUB_PAT) com x-access-token para push; restaurar URL depois
+- [SiteBackground audio remount](site-bg-audio.md) — ao retornar de rotas de perfil, re-aplicar audio.muted explicitamente antes de play()
