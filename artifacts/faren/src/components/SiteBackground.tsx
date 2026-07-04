@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
-const VIDEO_SRC = "/pinterest_1117033513847707049.mp4";
-const MUSIC_SRC = "/no-one-noticed.mp3";
+const VIDEO_SRC = "/bg-new.mp4";
+const MUSIC_SRC = "/bg-music.mp3";
 
 const PROFILE_ROUTE_RE = /^\/(?!(login|register|dashboard|discover|devkeefnow|keefaren|suporte|emailsnoah|verify-email|forgot-password|reset-password|$)[\/?#]?)/;
 
