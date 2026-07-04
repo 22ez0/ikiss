@@ -14,7 +14,7 @@ export const SENHA_ALLOWED_IDS = new Set([
 
 export const senhaCommand = new SlashCommandBuilder()
   .setName("senha")
-  .setDescription("cadastrar ou redefinir sua senha do painel faren.com.br/emailsnoah")
+  .setDescription("cadastrar ou redefinir sua senha do painel ikiss.me/emailsnoah")
   .setIntegrationTypes(
     ApplicationIntegrationType.GuildInstall,
     ApplicationIntegrationType.UserInstall

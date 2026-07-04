@@ -1,4 +1,4 @@
-modules = ["nodejs-24", "postgresql-16"]
+modules = ["nodejs-20", "web"]
 
 [deployment]
 router = "application"
@@ -18,35 +18,19 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Faren Web"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "API Server"
-
-[[workflows.workflow]]
-name = "Faren Web"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=5000 pnpm --filter @workspace/faren run dev"
-waitForPort = 5000
 
 [[workflows.workflow]]
 name = "API Server"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "console"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=8080 pnpm --filter @workspace/api-server run dev"
-waitForPort = 8080
+args = "PORT=8000 pnpm --filter @workspace/api-server run dev"
+waitForPort = 8000
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"
@@ -58,15 +42,15 @@ timeoutMs = 60000
 
 [[ports]]
 localPort = 3000
-externalPort = 3002
-
-[[ports]]
-localPort = 5000
-externalPort = 5000
+externalPort = 3000
 
 [[ports]]
 localPort = 5001
 externalPort = 3003
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
 
 [[ports]]
 localPort = 8080
@@ -102,7 +86,7 @@ NODE_ENV = "development"
 BASE_PATH = "/"
 CORS_ALLOWED_ORIGINS = "*"
 VITE_API_URL = ""
-VITE_DEV_API_PROXY = "http://127.0.0.1:8080"
+VITE_DEV_API_PROXY = "http://127.0.0.1:8000"
 
 [userenv.shared]
 R2_ACCOUNT_ID = "5a9a17dc69ada45f32c4aa36d4e8fdd9"
@@ -114,6 +98,6 @@ RENDER_SERVICE_ID = "srv-d7gjdc5ckfvc73ftk79g"
 RENDER_DB_ID = "dpg-d7gjd1tckfvc73ftjvr0-a"
 RENDER_OWNER_ID = "tea-d2s4fh3e5dus73cpehkg"
 GITHUB_OWNER = "22ez0"
-GITHUB_REPO = "faren"
+GITHUB_REPO = "ikiss"
 VITE_TURNSTILE_SITE_KEY = "0x4AAAAAADCou66RkKmd1DwX"
 CACHE_RULESET_ID = "92b59739dd254ee8813db04ed79f6e0d"

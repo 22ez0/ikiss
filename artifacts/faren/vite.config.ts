@@ -10,7 +10,7 @@ const port = rawPort ? Number(rawPort) : 3000;
 const basePath = process.env.BASE_PATH ?? "/";
 
 const apiProxyTarget =
-  process.env.VITE_DEV_API_PROXY ?? "https://api.faren.com.br";
+  process.env.VITE_DEV_API_PROXY ?? "https://api.ikiss.me";
 
 export default defineConfig({
   base: basePath,

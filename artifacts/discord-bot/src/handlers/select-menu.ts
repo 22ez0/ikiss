@@ -208,7 +208,7 @@ export async function handleSelectMenu(interaction: StringSelectMenuInteraction)
       .addOptions(
         new StringSelectMenuOptionBuilder()
           .setLabel("✉️ criar email")
-          .setDescription("registrar um novo endereço @faren.com.br")
+          .setDescription("registrar um novo endereço @ikiss.me")
           .setValue("email_create"),
         new StringSelectMenuOptionBuilder()
           .setLabel("📥 ver inbox")

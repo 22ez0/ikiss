@@ -6,7 +6,7 @@ import { Check } from "lucide-react";
  * VisualOptionCard — the universal "card with real preview + label + bullets"
  * shape used everywhere in the dashboard. Inspired by the Layout tab pattern.
  *
- * Why: Faren stops looking like guns.lol the moment every choice (theme, effect,
+ * Why: ikiss.me stops looking like guns.lol the moment every choice (theme, effect,
  * background, link, font, badge…) is shown VISUALLY before you click it.
  */
 export interface VisualOptionCardProps {
@@ -358,7 +358,7 @@ export function SliderCard({
 }
 
 /**
- * Faren signature glyph — recurring identity element used as a brand mark.
+ * Ikiss signature glyph — recurring identity element used as a brand mark.
  * A six-pointed star in pure SVG, animated with a subtle pulse.
  */
 export function FarenGlyph({

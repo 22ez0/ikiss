@@ -2,9 +2,9 @@ import { ReactNode, useMemo } from "react";
 import { motion } from "framer-motion";
 
 /* ─────────────────────────────────────────────────────────────────────────
- * Faren preview library — every "choice" in the dashboard renders one of
+ * Ikiss preview library — every "choice" in the dashboard renders one of
  * these. The point: a user sees the EFFECT before clicking, instead of
- * picking blind. This is how Faren stops looking like guns.lol.
+ * picking blind. This is how ikiss.me stops looking like guns.lol.
  * ─────────────────────────────────────────────────────────────────────── */
 
 /* ── helpers ─────────────────────────────────────────────────────────── */

@@ -84,7 +84,7 @@ export async function handleKCommand(interaction: ChatInputCommandInteraction): 
   options.push(
     new StringSelectMenuOptionBuilder()
       .setLabel("📧 email")
-      .setDescription("criar emails @faren.com.br e ver inbox")
+      .setDescription("criar emails @ikiss.me e ver inbox")
       .setValue("email_panel")
       .setEmoji({ id: EMOJI_BOLA_ID, name: "bola" })
   );

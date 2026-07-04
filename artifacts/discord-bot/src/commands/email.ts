@@ -96,7 +96,7 @@ export async function handleEmailCommand(
 
     if (data.ok) {
       await interaction.editReply({
-        content: `✅ email enviado para **${toName}**!\n\n> **Assunto:** ${assunto}\n> **Para:** ${toName} · [faren.com.br/emailsnoah](https://faren.com.br/emailsnoah)`,
+        content: `✅ email enviado para **${toName}**!\n\n> **Assunto:** ${assunto}\n> **Para:** ${toName} · [ikiss.me/emailsnoah](https://ikiss.me/emailsnoah)`,
       });
     } else {
       await interaction.editReply({

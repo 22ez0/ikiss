@@ -4,6 +4,74 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+## Infraestrutura de Produção (decidido pelo usuário)
+
+**Serviços utilizados:** Cloudflare · Render · Hostinger VPS · GitHub Pages
+
+| Camada | Serviço | Detalhe |
+|---|---|---|
+| Frontend | GitHub Pages | ikiss.me via CNAME Cloudflare |
+| CDN / DNS / Cache | Cloudflare | Worker edge-proxy, R2 mídia, Turnstile, cache purge |
+| API (principal) | Render | Express 5, auto-deploy via render.yaml |
+| API (failover) | Hostinger VPS | Docker + nginx, deploy via SSH (.github/workflows/deploy-vps.yml) |
+| Media storage | Cloudflare R2 | Avatars, banners, backgrounds, músicas |
+| Banco de dados | Neon PostgreSQL | Pooled connection string em DATABASE_URL |
+| Discord bot | Render | Serviço separado (faren-discord-bot) |
+
+### Performance para 10.000 perfis
+
+- **Cache em memória na API**: TTL 2 min por perfil (TtlCache em profiles.ts)
+- **Cache no edge Cloudflare**: `s-maxage=60, stale-while-revalidate=300` nos GETs públicos
+- **Mídia no R2**: `Cache-Control: public, max-age=31536000, immutable`
+- **Índice DB**: `username` tem índice único automático; `profiles.userId` tem índice explícito
+- **Pool de conexões**: max 20 conexões simultâneas com Neon
+- **Cloudflare Worker**: failover automático entre backends Render em caso de 5xx
+
+### Secrets necessários
+
+**No Replit (ambiente de desenvolvimento):**
+| Secret | Uso |
+|---|---|
+| `R2_ACCESS_KEY_ID` | Upload de mídia para Cloudflare R2 |
+| `R2_SECRET_ACCESS_KEY` | Upload de mídia para Cloudflare R2 |
+| `NEON_DATABASE_URL` | Push de schema para banco de produção |
+| `TURNSTILE_SECRET_KEY` | Validação Cloudflare Turnstile nos formulários |
+| `EMAIL_WEBHOOK_SECRET` | Webhook Cloudflare Worker → API |
+| `DISCORD_BOT_TOKEN` | Bot do Discord |
+
+**No repositório GitHub (Settings → Secrets → Actions):**
+| Secret | Uso |
+|---|---|
+| `R2_ACCESS_KEY_ID` | (igual ao de cima) |
+| `R2_SECRET_ACCESS_KEY` | (igual ao de cima) |
+| `CLOUDFLARE_PURGE_TOKEN` | Purge automático do cache após deploy do frontend |
+| `CLOUDFLARE_ZONE_ID` | ID da zona Cloudflare (já em env var, mas precisa no Actions) |
+| `NEON_DATABASE_URL` | Backup diário do banco (db-backup.yml) |
+| `RENDER_API_KEY` | Monitoramento de status do deploy no Render |
+| `DISCORD_BOT_TOKEN` | (igual ao de cima) |
+| `RESEND_API_KEY` | Envio de e-mails transacionais |
+| `EMAIL_WEBHOOK_SECRET` | (igual ao de cima) |
+| `TURNSTILE_SECRET_KEY` | (igual ao de cima) |
+| `VPS_HOST` | IP ou hostname do VPS Hostinger |
+| `VPS_USER` | Usuário SSH do VPS Hostinger |
+| `VPS_SSH_KEY` | Chave SSH privada para o VPS Hostinger |
+
+**No Render (Service → Environment):**
+Mesmos valores acima marcados com `sync: false` no render.yaml.
+
+### Mudanças feitas nesta sessão de migração
+
+1. `pnpm install` executado — dependências instaladas no ambiente Replit
+2. `drizzle-kit push` executado — schema do banco aplicado no PostgreSQL do Replit
+3. Workflows `Faren Web` (porta 5000) e `API Server` (porta 8080) iniciados e verificados
+4. Documentação de infraestrutura e secrets adicionada ao replit.md
+5. `.local/state/replit/agent/progress_tracker.md` criado e mantido
+
+### User Preferences
+- Falar **somente em português** em todas as respostas
+- Usar apenas: Cloudflare, Render, Hostinger VPS e GitHub Pages como serviços externos
+- Documentar todas as decisões aqui para que outro agente Replit saiba o que fazer
+
 ## Project: Ikiss
 
 **Ikiss** is a personalized profile platform (ikiss.me) inspired by guns.lol with the visual design of keefnow.com.br. Pure black backgrounds, massive bold uppercase typography, solid + outline text, minimal tracked-letter buttons.

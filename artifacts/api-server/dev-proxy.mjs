@@ -2,8 +2,8 @@ import http from 'node:http';
 import { request as httpsRequest } from 'node:https';
 
 const PORT = Number(process.env.PORT || 8080);
-const TARGET_HOST = 'api.faren.com.br';
-const UA = 'faren-replit-dev-proxy/1.0';
+const TARGET_HOST = 'api.ikiss.me';
+const UA = 'ikiss-replit-dev-proxy/1.0';
 
 const server = http.createServer((req, res) => {
   const headers = { ...req.headers };
@@ -36,5 +36,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[dev-proxy] listening on :${PORT} → https://${TARGET_HOST}`);
+  console.log(`[ikiss-proxy] listening on :${PORT} → https://${TARGET_HOST}`);
 });

@@ -138,7 +138,7 @@ export function buildRpcFieldsModal(
           .setCustomId("rpc_button_url")
           .setLabel("url do botão (opcional)")
           .setStyle(TextInputStyle.Short)
-          .setPlaceholder("https://faren.com.br/seuuser")
+          .setPlaceholder("https://ikiss.me/seuuser")
           .setValue(existing?.buttonUrl ?? "")
           .setRequired(false)
       )
@@ -151,7 +151,7 @@ export function buildRpcFieldsModal(
 export function buildSenhaModal(): ModalBuilder {
   return new ModalBuilder()
     .setCustomId("modal_set_senha")
-    .setTitle("cadastrar senha — faren.com.br/emailsnoah")
+    .setTitle("cadastrar senha — ikiss.me/emailsnoah")
     .addComponents(
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
@@ -179,7 +179,7 @@ export function buildSenhaModal(): ModalBuilder {
 export function buildCreateEmailModal(): ModalBuilder {
   return new ModalBuilder()
     .setCustomId("modal_create_email")
-    .setTitle("criar email @faren.com.br")
+    .setTitle("criar email @ikiss.me")
     .addComponents(
       new ActionRowBuilder<TextInputBuilder>().addComponents(
         new TextInputBuilder()
@@ -225,7 +225,7 @@ export async function handleModalSubmit(interaction: ModalSubmitInteraction): Pr
       const data = await res.json() as { ok?: boolean; error?: string };
       if (data.ok) {
         await interaction.editReply({
-          content: `✅ senha cadastrada com sucesso!\n\nacesse **faren.com.br/emailsnoah** e faça login com sua conta.`,
+          content: `✅ senha cadastrada com sucesso!\n\nacesse **ikiss.me/emailsnoah** e faça login com sua conta.`,
         });
       } else {
         await interaction.editReply({ content: `❌ ${data.error ?? "erro ao salvar senha"}` });
