@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       service_id:
-        description: "Render Service ID (ex: srv-xxxx)"
+        description: "Render Service ID (ex: srv-xxxx). Se vazio, tenta descobrir pelo nome faren-api."
         required: false
         default: ""
 
@@ -25,7 +25,8 @@ jobs:
       - name: Trigger Render deploy
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          SERVICE_ID: ${{ inputs.service_id || vars.RENDER_SERVICE_ID || '' }}
+          # RENDER_SERVICE_ID deve ser configurado como secret (Settings → Secrets → Actions)
+          SERVICE_ID: ${{ inputs.service_id || secrets.RENDER_SERVICE_ID }}
         run: |
           if [ -z "$RENDER_API_KEY" ]; then
             echo "::warning::RENDER_API_KEY não configurado — deploy ignorado."
@@ -33,39 +34,49 @@ jobs:
           fi
 
           if [ -z "$SERVICE_ID" ]; then
-            # Tentar descobrir o service ID pelo nome faren-api
-            SERVICE_ID=$(curl -s "https://api.render.com/v1/services?name=faren-api&limit=5" \
+            echo "Buscando service 'faren-api' pelo nome..."
+            SERVICE_ID=$(curl -sf "https://api.render.com/v1/services?name=faren-api&limit=5" \
               -H "Authorization: Bearer $RENDER_API_KEY" | \
-              node -e "const c=[];process.stdin.on('data',d=>c.push(d));process.stdin.on('end',()=>{
-                const d=JSON.parse(Buffer.concat(c));
-                const svc=d.find?.(s=>s?.service?.name==='faren-api');
-                console.log(svc?.service?.id||'');
-              })" 2>/dev/null || echo "")
+              python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+svc = next((s for s in data if s.get('service',{}).get('name') == 'faren-api'), None)
+print(svc['service']['id'] if svc else '')
+" 2>/dev/null || echo "")
           fi
 
           if [ -z "$SERVICE_ID" ]; then
-            echo "::warning::Nenhum serviço faren-api encontrado no Render. Crie o serviço primeiro."
-            echo "Veja SETUP.md → 'Como reativar o Render'."
-            exit 0
+            echo "::error::Nenhum serviço faren-api encontrado no Render."
+            echo "Configure o secret RENDER_SERVICE_ID em Settings → Secrets → Actions."
+            echo "Veja SETUP.md → 'Após reativar: recriar o serviço no Render'."
+            exit 1
           fi
 
-          echo "Triggering deploy of service $SERVICE_ID..."
-          RESULT=$(curl -s -X POST \
-            "https://api.render.com/v1/services/$SERVICE_ID/deploys" \
+          echo "Disparando deploy do serviço $SERVICE_ID..."
+          HTTP_STATUS=$(curl -s -o /tmp/render_deploy_response.json -w "%{http_code}" \
+            -X POST "https://api.render.com/v1/services/$SERVICE_ID/deploys" \
             -H "Authorization: Bearer $RENDER_API_KEY" \
             -H "Content-Type: application/json" \
             -d '{"clearCache":"do_not_clear"}')
-          
-          echo "Render response: $RESULT"
-          DEPLOY_ID=$(echo "$RESULT" | node -e "
-            const c=[];process.stdin.on('data',d=>c.push(d));process.stdin.on('end',()=>{
-              try{const d=JSON.parse(Buffer.concat(c));console.log(d.id||d.deploy?.id||'');}catch{console.log('');}
-            })")
-          
+
+          RESPONSE=$(cat /tmp/render_deploy_response.json)
+          echo "HTTP status: $HTTP_STATUS"
+          echo "Render response: $RESPONSE"
+
+          if [ "$HTTP_STATUS" != "201" ] && [ "$HTTP_STATUS" != "200" ]; then
+            echo "::error::Falha ao disparar deploy (HTTP $HTTP_STATUS). Resposta: $RESPONSE"
+            exit 1
+          fi
+
+          DEPLOY_ID=$(echo "$RESPONSE" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+print(data.get('id') or data.get('deploy', {}).get('id', ''))
+" 2>/dev/null || echo "")
+
           if [ -n "$DEPLOY_ID" ]; then
-            echo "Deploy iniciado: $DEPLOY_ID"
+            echo "Deploy iniciado com sucesso: $DEPLOY_ID"
             echo "Dashboard: https://dashboard.render.com/web/$SERVICE_ID/deploys"
           else
-            echo "::error::Falha ao iniciar deploy. Resposta: $RESULT"
-            exit 1
+            echo "::warning::Deploy pode ter sido iniciado mas o ID não foi extraído. Verifique o dashboard."
           fi

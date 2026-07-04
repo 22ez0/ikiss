@@ -18,8 +18,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,14 +48,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  make-public:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
       - name: Set package visibility to public
         run: |
-          curl -s -X PATCH \
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X PATCH \
             "https://api.github.com/user/packages/container/ikiss-api" \
-            -H "Authorization: Bearer ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            -d '{"visibility":"public"}' || echo "Visibility update skipped (may need GH_TOKEN with packages:write)"
+            -H "Content-Type: application/json" \
+            -d '{"visibility":"public"}')
+          echo "HTTP status: $RESPONSE"
+          if [ "$RESPONSE" != "200" ] && [ "$RESPONSE" != "204" ]; then
+            echo "::warning::Não foi possível tornar o package público (HTTP $RESPONSE). Verifique manualmente em github.com/22ez0 → Packages → ikiss-api → Package settings."
+          else
+            echo "Package ghcr.io/22ez0/ikiss-api marcado como público com sucesso."
+          fi
