@@ -96,16 +96,21 @@ export function SiteBackground() {
     };
   }, []);
 
-  // Pause music on profile pages (they have their own music), resume on other pages
+  // Pause music on profile pages (they have their own music), resume on other pages.
+  // Always re-apply muted state on remount (audio element remounts when returning from profile).
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
     if (isProfilePage) {
       audio.pause();
-    } else if (!musicMuted) {
-      audio.play().catch(() => {});
+    } else {
+      // Re-apply muted state explicitly to handle remounts after profile pages
+      audio.muted = !musicUnlocked || musicMuted;
+      if (!musicMuted) {
+        audio.play().catch(() => {});
+      }
     }
-  }, [isProfilePage, musicMuted]);
+  }, [isProfilePage, musicUnlocked, musicMuted]);
 
   const toggleMusicMute = (e: React.MouseEvent) => {
     e.stopPropagation();
