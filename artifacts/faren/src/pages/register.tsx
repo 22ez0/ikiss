@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +6,7 @@ import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, ArrowLeft, RotateCw, Mail } from "lucide-react";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 
 const RESERVED = new Set(['keefaren','admin','administrator','api','dashboard','login','register','profile','settings','support','root','ikiss','keef','null','comunidade','community','explore','feed']);
 
@@ -25,19 +25,7 @@ const registerSchema = z.object({
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string) || "1x00000000000000000000AA";
 const API_BASE = `${(import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/+$/, "")}/api`;
-
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (el: HTMLElement, opts: { sitekey: string; callback: (t: string) => void; "error-callback"?: () => void; theme?: "dark" | "light" | "auto" }) => string;
-      reset: (id?: string) => void;
-      remove?: (id: string) => void;
-    };
-    onTurnstileLoad?: () => void;
-  }
-}
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -45,11 +33,6 @@ export default function Register() {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState(1);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
-  const [widgetState, setWidgetState] = useState<"loading" | "ready" | "error">("loading");
-  const [reloadKey, setReloadKey] = useState(0);
-  const turnstileRef = useRef<HTMLDivElement | null>(null);
-  const widgetIdRef = useRef<string | null>(null);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -66,98 +49,12 @@ export default function Register() {
     }
   }, [form]);
 
-  // Inject the Turnstile script exactly once. We do NOT use the ?onload= param
-  // because that callback closes over a stale render function across mounts.
-  useEffect(() => {
-    if (document.querySelector('script[data-turnstile]')) return;
-    const s = document.createElement("script");
-    s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-    s.async = true;
-    s.defer = true;
-    s.setAttribute("data-turnstile", "1");
-    document.head.appendChild(s);
-  }, []);
-
-  // Render (and re-render) the widget whenever we enter step 2 or the user
-  // clicks "tentar de novo". Polls for window.turnstile so a slow CF script
-  // load can never leave us stuck.
-  useEffect(() => {
-    if (step !== 2) {
-      setTurnstileToken(null);
-      if (widgetIdRef.current && window.turnstile?.remove) {
-        try { window.turnstile.remove(widgetIdRef.current); } catch { /* noop */ }
-      }
-      widgetIdRef.current = null;
-      return;
-    }
-
-    let cancelled = false;
-    let attempts = 0;
-    const maxAttempts = 30; // 15s @ 500ms
-    setWidgetState("loading");
-    setTurnstileToken(null);
-    if (turnstileRef.current) turnstileRef.current.innerHTML = "";
-    widgetIdRef.current = null;
-
-    const tick = () => {
-      if (cancelled) return;
-      if (widgetIdRef.current) return;
-      const host = turnstileRef.current;
-      if (window.turnstile && host) {
-        try {
-          widgetIdRef.current = window.turnstile.render(host, {
-            sitekey: TURNSTILE_SITE_KEY,
-            theme: "dark",
-            callback: (t) => { setTurnstileToken(t); setWidgetState("ready"); },
-            "error-callback": () => { setTurnstileToken(null); setWidgetState("error"); },
-          });
-          setWidgetState("ready");
-          return;
-        } catch {
-          /* fall through to retry */
-        }
-      }
-      if (++attempts >= maxAttempts) {
-        setWidgetState("error");
-        return;
-      }
-      setTimeout(tick, 500);
-    };
-    tick();
-
-    return () => {
-      cancelled = true;
-      if (widgetIdRef.current && window.turnstile?.remove) {
-        try { window.turnstile.remove(widgetIdRef.current); } catch { /* noop */ }
-      }
-      widgetIdRef.current = null;
-    };
-  }, [step, reloadKey]);
-
-  const reloadWidget = useCallback(() => setReloadKey(k => k + 1), []);
-
   const nextStep = async () => {
     const valid = await form.trigger(["email", "password"] as const);
     if (valid) setStep(2);
   };
 
   const onSubmit = async (data: RegisterFormValues) => {
-    if (widgetState === "loading" && !turnstileToken) {
-      toast({
-        title: "Aguarde um instante",
-        description: "A verificação ainda está carregando. Tente novamente em alguns segundos.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (widgetState === "ready" && !turnstileToken) {
-      toast({
-        title: "Confirme a verificação",
-        description: "Conclua o desafio de segurança antes de criar a conta.",
-        variant: "destructive",
-      });
-      return;
-    }
     setSubmitting(true);
     try {
       const res = await fetch(`${API_BASE}/auth/register`, {
@@ -167,29 +64,20 @@ export default function Register() {
           ...data,
           email: data.email.trim().toLowerCase(),
           username: data.username.trim().toLowerCase(),
-          turnstileToken: turnstileToken || undefined,
         }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (res.status === 403 && /verifica/i.test(body.error || "")) {
-          throw new Error("Não conseguimos validar a verificação anti-bot. Atualize a página e tente novamente.");
-        }
         throw new Error(body.error || "Ocorreu um erro");
       }
+      login(body.token);
       if (body.emailVerificationRequired) {
-        login(body.token);
         setLocation("/dashboard?emailVerification=pending");
       } else {
-        login(body.token);
         setLocation("/dashboard");
       }
     } catch (err: any) {
       toast({ title: "Falha no cadastro", description: err.message || "Ocorreu um erro", variant: "destructive" });
-      if (window.turnstile && widgetIdRef.current) {
-        try { window.turnstile.reset(widgetIdRef.current); } catch { /* noop */ }
-      }
-      setTurnstileToken(null);
     } finally {
       setSubmitting(false);
     }
@@ -284,27 +172,6 @@ export default function Register() {
                       placeholder="Como as pessoas te veem"
                       className="w-full bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-white/30 transition-colors rounded-sm"
                     />
-                  </div>
-
-                  <div className="pt-1">
-                    <div ref={turnstileRef} className="flex justify-center min-h-[70px] items-center" />
-                    {widgetState === "loading" && (
-                      <p className="text-xs text-white/40 text-center mt-1">Carregando verificação anti-bot…</p>
-                    )}
-                    {widgetState === "error" && (
-                      <div className="flex flex-col items-center gap-2 mt-1">
-                        <p className="text-xs text-white/40 text-center">
-                          Verificação anti-bot indisponível. Você ainda pode criar sua conta.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={reloadWidget}
-                          className="text-xs text-white/50 hover:text-white inline-flex items-center gap-1 underline-offset-4 hover:underline"
-                        >
-                          <RotateCw className="w-3 h-3" /> Tentar carregar verificação
-                        </button>
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex gap-3 mt-4">
