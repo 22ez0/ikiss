@@ -92,7 +92,9 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     return;
   }
   const turnstileToken = (req.body && (req.body.turnstileToken || req.body["cf-turnstile-response"])) as string | undefined;
-  if (process.env.TURNSTILE_SECRET_KEY && !(await verifyTurnstile(turnstileToken, ip))) {
+  // Only validate Turnstile when a token was actually provided (widget loaded).
+  // When the widget fails to load (no token), fall back to IP rate-limiting only.
+  if (process.env.TURNSTILE_SECRET_KEY && turnstileToken && !(await verifyTurnstile(turnstileToken, ip))) {
     res.status(400).json({ error: "Verificação de segurança falhou. Tente novamente." });
     return;
   }

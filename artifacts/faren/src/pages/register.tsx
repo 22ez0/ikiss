@@ -293,15 +293,15 @@ export default function Register() {
                     )}
                     {widgetState === "error" && (
                       <div className="flex flex-col items-center gap-2 mt-1">
-                        <p className="text-xs text-red-400/80 text-center">
-                          A verificação não carregou. Verifique sua conexão ou desative bloqueadores e tente de novo.
+                        <p className="text-xs text-white/40 text-center">
+                          Verificação anti-bot indisponível. Você ainda pode criar sua conta.
                         </p>
                         <button
                           type="button"
                           onClick={reloadWidget}
-                          className="text-xs text-white/70 hover:text-white inline-flex items-center gap-1 underline-offset-4 hover:underline"
+                          className="text-xs text-white/50 hover:text-white inline-flex items-center gap-1 underline-offset-4 hover:underline"
                         >
-                          <RotateCw className="w-3 h-3" /> Tentar de novo
+                          <RotateCw className="w-3 h-3" /> Tentar carregar verificação
                         </button>
                       </div>
                     )}
