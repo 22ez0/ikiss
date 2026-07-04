@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
-const VIDEO_SRC = "/pinterest_875105771346663629_1783129082028.mp4";
-const MUSIC_SRC = "/On_Possession_spotdown.org_(1)_1783129082027.mp3";
+const VIDEO_SRC = "/pinterest_1117033513847707049.mp4";
+const MUSIC_SRC = "/no-one-noticed.mp3";
 
 const PROFILE_ROUTE_RE = /^\/(?!(login|register|dashboard|discover|devkeefnow|keefaren|suporte|emailsnoah|verify-email|forgot-password|reset-password|$)[\/?#]?)/;
 
@@ -14,9 +14,9 @@ export function SiteBackground() {
   const videoBRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [showB, setShowB] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
   const [musicUnlocked, setMusicUnlocked] = useState(false);
   const [musicMuted, setMusicMuted] = useState(false);
-  const [showMusicHint, setShowMusicHint] = useState(true);
   const unlockedRef = useRef(false);
 
   // Seamless loop: two stacked videos cross-fade near the end
@@ -32,6 +32,7 @@ export function SiteBackground() {
     const startBoth = () => {
       try { a.currentTime = 0; a.play().catch(() => {}); } catch {}
       try { b.currentTime = 0; b.pause(); } catch {}
+      setVideoReady(true);
     };
 
     const tick = () => {
@@ -60,7 +61,16 @@ export function SiteBackground() {
     };
   }, []);
 
-  // Unlock music on first user gesture anywhere on the page
+  // Start audio muted immediately (browsers allow muted autoplay)
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.muted = true;
+    audio.volume = 0.35;
+    audio.play().catch(() => {});
+  }, []);
+
+  // Unlock music (unmute) on first user gesture anywhere on the page
   useEffect(() => {
     if (unlockedRef.current) return;
 
@@ -68,7 +78,6 @@ export function SiteBackground() {
       if (unlockedRef.current) return;
       unlockedRef.current = true;
       setMusicUnlocked(true);
-      setShowMusicHint(false);
       const audio = audioRef.current;
       if (audio) {
         audio.muted = false;
@@ -90,22 +99,21 @@ export function SiteBackground() {
   // Pause music on profile pages (they have their own music), resume on other pages
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !musicUnlocked) return;
+    if (!audio) return;
     if (isProfilePage) {
       audio.pause();
     } else if (!musicMuted) {
       audio.play().catch(() => {});
     }
-  }, [isProfilePage, musicUnlocked, musicMuted]);
+  }, [isProfilePage, musicMuted]);
 
   const toggleMusicMute = (e: React.MouseEvent) => {
     e.stopPropagation();
     const audio = audioRef.current;
     if (!musicUnlocked) {
-      // First click: unlock AND play
+      // First click: unlock AND unmute
       unlockedRef.current = true;
       setMusicUnlocked(true);
-      setShowMusicHint(false);
       if (audio) {
         audio.muted = false;
         audio.volume = 0.35;
@@ -126,7 +134,7 @@ export function SiteBackground() {
 
   return (
     <>
-      {/* Fullscreen video background */}
+      {/* Fullscreen video background — black until video is ready to prevent white flash */}
       <div className="fixed inset-0 z-0 overflow-hidden bg-black">
         <video
           ref={videoARef}
@@ -135,7 +143,7 @@ export function SiteBackground() {
           playsInline
           preload="auto"
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[450ms]"
-          style={{ opacity: showB ? 0 : 1 }}
+          style={{ opacity: videoReady ? (showB ? 0 : 1) : 0 }}
         />
         <video
           ref={videoBRef}
@@ -144,7 +152,7 @@ export function SiteBackground() {
           playsInline
           preload="auto"
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[450ms]"
-          style={{ opacity: showB ? 1 : 0 }}
+          style={{ opacity: videoReady ? (showB ? 1 : 0) : 0 }}
         />
         {/* Dark overlay so content stays readable */}
         <div className="absolute inset-0 bg-black/60" />
@@ -165,7 +173,7 @@ export function SiteBackground() {
         className="fixed bottom-4 right-4 z-50 flex items-center gap-2 bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/25 backdrop-blur-sm text-white/70 hover:text-white text-[11px] tracking-[0.15em] uppercase px-3 py-2 rounded-full transition-all duration-200"
         title={musicMuted ? "Ativar música" : "Silenciar música"}
       >
-        {!musicUnlocked || showMusicHint ? (
+        {!musicUnlocked ? (
           <>
             <span className="inline-block w-2 h-2 rounded-full bg-white/60 animate-pulse" />
             Ativar som

@@ -99,12 +99,12 @@ export function DashboardLayout({ children, active = "overview" }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex">
+    <div className="min-h-screen bg-transparent text-white flex">
       {/* ── Sidebar ─────────────────────────────────────────── */}
       <aside
         className={`${
           open ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 fixed md:sticky top-0 left-0 z-40 h-screen w-[260px] shrink-0 bg-zinc-950 md:bg-black border-r border-white/10 flex flex-col transition-transform`}
+        } md:translate-x-0 fixed md:sticky top-0 left-0 z-40 h-screen w-[260px] shrink-0 bg-zinc-950/90 md:bg-black/80 backdrop-blur-md border-r border-white/10 flex flex-col transition-transform`}
       >
         {/* Brand */}
         <Link href="/" className="px-5 h-14 border-b border-white/10 flex items-center gap-2.5">
@@ -188,7 +188,7 @@ export function DashboardLayout({ children, active = "overview" }: Props) {
       {/* ── Main ───────────────────────────────────────────── */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Mobile top bar */}
-        <div className="md:hidden sticky top-0 z-20 h-14 bg-black border-b border-white/10 flex items-center justify-between px-4">
+        <div className="md:hidden sticky top-0 z-20 h-14 bg-black/80 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-4">
           <span className="text-sm font-bold tracking-[0.28em] uppercase">IKISS</span>
           <button onClick={() => setOpen((s) => !s)} className="p-2 text-white/70 hover:text-white">
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
