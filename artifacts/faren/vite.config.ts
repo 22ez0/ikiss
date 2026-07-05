@@ -62,7 +62,7 @@ export default defineConfig({
         secure: true,
         ws: false,
         headers: {
-          "User-Agent": "faren-replit-dev-proxy/1.0",
+          "User-Agent": "ikiss-replit-dev-proxy/1.0",
         },
       },
     },

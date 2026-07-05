@@ -60,9 +60,11 @@ fi
 echo "==> Serviço criado: $SERVICE_ID"
 
 echo "==> [2/3] Configurando variáveis de ambiente..."
-ADMIN_HASH=$(node -e "
-import('bcryptjs').then(b=>b.hash(process.env.ADMIN_PASSWORD||'Hungria2021@',10)).then(h=>console.log(h)).catch(()=>console.log(''))
-" 2>/dev/null || echo "")
+
+if [ -z "${ADMIN_PASSWORD:-}" ]; then
+  echo "ERRO: variável ADMIN_PASSWORD não definida. Defina-a antes de rodar o script."
+  exit 1
+fi
 
 curl -sf -X PUT "https://api.render.com/v1/services/$SERVICE_ID/env-vars" \
   -H "Authorization: Bearer $API_KEY" \
@@ -73,7 +75,7 @@ curl -sf -X PUT "https://api.render.com/v1/services/$SERVICE_ID/env-vars" \
     {\"key\":\"DATABASE_URL\",\"value\":\"${NEON_DATABASE_URL}\"},
     {\"key\":\"SESSION_SECRET\",\"value\":\"${SESSION_SECRET}\"},
     {\"key\":\"ADMIN_LOGIN\",\"value\":\"keefaren\"},
-    {\"key\":\"ADMIN_PASSWORD\",\"value\":\"${ADMIN_HASH:-Hungria2021@}\"},
+    {\"key\":\"ADMIN_PASSWORD\",\"value\":\"${ADMIN_PASSWORD}\"},
     {\"key\":\"CORS_ALLOWED_ORIGINS\",\"value\":\"https://ikiss.me,https://www.ikiss.me\"},
     {\"key\":\"RATE_LIMIT_WINDOW_MS\",\"value\":\"60000\"},
     {\"key\":\"RATE_LIMIT_MAX\",\"value\":\"300\"},
