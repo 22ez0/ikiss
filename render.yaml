@@ -1,8 +1,8 @@
-# Faren — Render Blueprint (API + Discord Bot)
+# Ikiss — Render Blueprint (API + Discord Bot)
 #
 # Este blueprint cria DOIS serviços:
-#   1. faren-api        — API REST (Express 5 + Neon Postgres)
-#   2. faren-discord-bot — Bot do Discord (tsx, sem build step)
+#   1. ikiss-api        — API REST (Express 5 + Neon Postgres)
+#   2. ikiss-discord-bot — Bot do Discord (tsx, sem build step)
 #
 # A API é implantada em MÚLTIPLAS contas Render (rotação de failover).
 # Todos os accounts usam o MESMO Neon Postgres compartilhado.
@@ -11,7 +11,7 @@
 # IMPORTANTE: ao aplicar este blueprint em uma conta nova, defina manualmente
 # no painel Render (Service → Environment) as variáveis marcadas sync: false.
 #
-# Para a API (faren-api):
+# Para a API (ikiss-api):
 #   DATABASE_URL          → Neon pooled connection string (igual em todos os accounts)
 #   SESSION_SECRET        → 44 bytes (igual em todos os accounts)
 #   ADMIN_SECRET          → 44 bytes (igual em todos os accounts)
@@ -22,16 +22,14 @@
 #   R2_SECRET_ACCESS_KEY  → Cloudflare R2 secret
 #   EMAIL_WEBHOOK_SECRET  → segredo compartilhado com o Cloudflare Worker
 #
-# Para o bot (faren-discord-bot):
+# Para o bot (ikiss-discord-bot):
 #   DISCORD_BOT_TOKEN     → token do bot (Discord Developer Portal)
 #   DATABASE_URL          → mesma Neon connection string da API
 #   EMAIL_WEBHOOK_SECRET  → mesmo segredo da API
-#
-# Use scripts/render-fanout.mjs para aplicar em massa nas 10 contas.
 
 services:
   - type: web
-    name: faren-api
+    name: ikiss-api
     runtime: node
     region: oregon
     plan: free
@@ -88,9 +86,12 @@ services:
       # Email inbound webhook (Cloudflare Worker → API)
       - key: EMAIL_WEBHOOK_SECRET
         sync: false
+      # App URL
+      - key: APP_URL
+        value: https://ikiss.me
 
   - type: web
-    name: faren-discord-bot
+    name: ikiss-discord-bot
     runtime: node
     region: oregon
     plan: free
@@ -109,9 +110,9 @@ services:
       # Mesma Neon connection string da API
       - key: DATABASE_URL
         sync: false
-      # URL da API (ajustar se usar outro account Render)
+      # URL da API
       - key: API_BASE_URL
-        value: https://faren-api-wn1z.onrender.com
+        value: https://ikiss-api.onrender.com
       # Segredo compartilhado com Cloudflare Worker e API
       - key: EMAIL_WEBHOOK_SECRET
         sync: false

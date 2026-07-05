@@ -1,6 +1,6 @@
 #!/bin/bash
-# Faren — restore production-style database from gzipped pg_dump output
-# Usage: TARGET_DATABASE_URL=postgres://... ./scripts/db-restore.sh backups/faren-db-XXXX.sql.gz
+# Ikiss — restore production-style database from gzipped pg_dump output
+# Usage: TARGET_DATABASE_URL=postgres://... ./scripts/db-restore.sh backups/ikiss-db-XXXX.sql.gz
 # WARNING: --clean --if-exists in the dump will DROP existing tables before restore.
 
 set -euo pipefail

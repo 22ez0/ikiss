@@ -1,14 +1,14 @@
 #!/bin/bash
 # =============================================================================
-# setup-vps.sh — Configuração inicial do VPS Hostinger para o Faren
+# setup-vps.sh — Configuração inicial do VPS para o Ikiss
 # Execute UMA VEZ como root no VPS recém-criado:
-#   curl -fsSL https://raw.githubusercontent.com/22ez0/faren/main/scripts/setup-vps.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/22ez0/ikiss/main/scripts/setup-vps.sh | bash
 # =============================================================================
 set -euo pipefail
 
-REPO="https://github.com/22ez0/faren.git"
-APP_DIR="/opt/faren"
-DOMAIN="api.faren.com.br"
+REPO="https://github.com/22ez0/ikiss.git"
+APP_DIR="/opt/ikiss"
+DOMAIN="api.ikiss.me"
 EMAIL="vgss.lly@gmail.com"
 
 echo "==> [1/7] Atualizando pacotes..."
@@ -42,11 +42,11 @@ SESSION_SECRET=
 ADMIN_SECRET=
 ADMIN_LOGIN=keefaren
 ADMIN_PASSWORD=
-CORS_ALLOWED_ORIGINS=https://faren.com.br,https://www.faren.com.br
+CORS_ALLOWED_ORIGINS=https://ikiss.me,https://www.ikiss.me
 RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_MAX=300
 ENABLE_BOT_BLOCKING=true
-EMAIL_FROM=Faren <no-reply@faren.com.br>
+EMAIL_FROM=Ikiss <no-reply@ikiss.me>
 RESEND_API_KEY=
 TURNSTILE_SECRET_KEY=
 R2_ACCOUNT_ID=5a9a17dc69ada45f32c4aa36d4e8fdd9
@@ -57,7 +57,8 @@ R2_SECRET_ACCESS_KEY=
 DISCORD_BOT_TOKEN=
 DISCORD_CLIENT_ID=1500071757925584996
 DISCORD_CLIENT_SECRET=
-DISCORD_REDIRECT_URI=https://faren.com.br/
+DISCORD_REDIRECT_URI=https://ikiss.me/
+APP_URL=https://ikiss.me
 ENVEOF
 
 echo ""
@@ -86,6 +87,6 @@ echo ""
 echo "Próximos passos:"
 echo "  1. Edite $APP_DIR/.env.production com seus segredos reais"
 echo "  2. Execute: cd $APP_DIR && docker compose up -d --build"
-echo "  3. Configure os segredos no GitHub Actions (ver README)"
+echo "  3. Configure os segredos no GitHub Actions (ver SETUP.md)"
 echo ""
 echo "Renovação de SSL já está configurada automaticamente via certbot container."

@@ -5,7 +5,7 @@
 # =============================================================================
 set -euo pipefail
 
-APP_DIR="/opt/faren"
+APP_DIR="/opt/ikiss"
 cd "$APP_DIR"
 
 echo "==> Atualizando código..."

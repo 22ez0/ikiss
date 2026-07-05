@@ -9,7 +9,7 @@ async function tryUguuUpload(buffer: ArrayBuffer, contentType: string, ext: stri
   const res = await fetch("https://uguu.se/upload.php", {
     method: "POST",
     body: form,
-    headers: { "User-Agent": "faren-bot/1.0" },
+    headers: { "User-Agent": "ikiss-bot/1.0" },
   });
 
   if (!res.ok) throw new Error(`uguu retornou ${res.status}`);
@@ -22,7 +22,7 @@ async function tryUguuUpload(buffer: ArrayBuffer, contentType: string, ext: stri
 
 async function downloadImage(imageUrl: string): Promise<{ buffer: ArrayBuffer; contentType: string; ext: string }> {
   const res = await fetch(imageUrl, {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; faren-bot/1.0)" },
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; ikiss-bot/1.0)" },
   });
   if (!res.ok) throw new Error(`falha ao baixar imagem: ${res.status}`);
 
@@ -55,7 +55,7 @@ export async function uploadToCatbox(imageUrl: string): Promise<string> {
     const res = await fetch("https://catbox.moe/user.php", {
       method: "POST",
       body: form,
-      headers: { "User-Agent": "faren-bot/1.0" },
+      headers: { "User-Agent": "ikiss-bot/1.0" },
     });
 
     if (res.ok) {
@@ -77,7 +77,7 @@ export async function uploadToCatbox(imageUrl: string): Promise<string> {
     const res = await fetch("https://catbox.moe/user.php", {
       method: "POST",
       body: form,
-      headers: { "User-Agent": "faren-bot/1.0" },
+      headers: { "User-Agent": "ikiss-bot/1.0" },
     });
 
     if (res.ok) {

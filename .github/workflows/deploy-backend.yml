@@ -34,7 +34,7 @@ jobs:
         if: ${{ secrets.RENDER_API_KEY != '' }}
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_SERVICE_ID: srv-d7gjdc5ckfvc73ftk79g
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
           COMMIT_SHA: ${{ github.sha }}
           EVENT_NAME: ${{ github.event_name }}
         run: |

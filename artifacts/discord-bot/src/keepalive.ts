@@ -1,5 +1,5 @@
 const BOT_URL =
-  process.env.BOT_PUBLIC_URL ?? "https://faren-discord-bot.onrender.com";
+  process.env.BOT_PUBLIC_URL ?? "https://ikiss-discord-bot.onrender.com";
 
 const PING_MS = 4 * 60 * 1000; // 4 minutos — Render dorme após 15min sem ping
 

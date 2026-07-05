@@ -114,7 +114,7 @@ jobs:
               printf '```\n%s\n```\n\n' "$LAST_BODY"
             fi
             printf '- **Run do monitor**: %s\n' "$RUN_URL"
-            printf '- **Dashboard do Render**: https://dashboard.render.com/web/srv-d7gjdc5ckfvc73ftk79g\n\n'
+            printf '- **Dashboard do Render**: https://dashboard.render.com/\n\n'
             printf '### Como investigar\n'
             printf '1. Abra o dashboard do Render no link acima e veja se o service está `Live`, `Suspended` ou em `Deploy in progress`.\n'
             printf '2. Veja os logs do service — cold start travado costuma aparecer como timeout no boot ou erro de conexão com o Postgres.\n'

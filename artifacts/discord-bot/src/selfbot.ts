@@ -137,14 +137,14 @@ async function buildRichPresence(
 
   const rp = new RichPresence(client)
     .setApplicationId(CLIENT_ID)
-    .setName(opts.title || "faren")
+    .setName(opts.title || "ikiss")
     .setType(typeMap[opts.statusType] ?? 0);
 
   if (opts.subtitle) rp.setDetails(opts.subtitle);
   if (opts.detail) rp.setState(opts.detail);
 
   if (opts.statusType === "streaming") {
-    rp.setURL(opts.customUrl || "https://twitch.tv/faren");
+    rp.setURL(opts.customUrl || "https://ikiss.me");
   }
 
   if (opts.iconUrl) {

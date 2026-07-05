@@ -86,7 +86,7 @@ client.once("ready", async () => {
 
   client.user?.setPresence({
     status: "online",
-    activities: [{ name: "/k", type: ActivityType.Streaming, url: "https://twitch.tv/faren" }],
+    activities: [{ name: "/k", type: ActivityType.Streaming, url: "https://ikiss.me" }],
   });
 
   console.log("[bot] status de streaming definido: /k");

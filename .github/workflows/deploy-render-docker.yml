@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       service_id:
-        description: "Render Service ID (ex: srv-xxxx). Se vazio, tenta descobrir pelo nome faren-api."
+        description: "Render Service ID (ex: srv-xxxx). Se vazio, tenta descobrir pelo nome ikiss-api."
         required: false
         default: ""
 
@@ -34,19 +34,19 @@ jobs:
           fi
 
           if [ -z "$SERVICE_ID" ]; then
-            echo "Buscando service 'faren-api' pelo nome..."
-            SERVICE_ID=$(curl -sf "https://api.render.com/v1/services?name=faren-api&limit=5" \
+            echo "Buscando service 'ikiss-api' pelo nome..."
+            SERVICE_ID=$(curl -sf "https://api.render.com/v1/services?name=ikiss-api&limit=5" \
               -H "Authorization: Bearer $RENDER_API_KEY" | \
               python3 -c "
 import sys, json
 data = json.load(sys.stdin)
-svc = next((s for s in data if s.get('service',{}).get('name') == 'faren-api'), None)
+svc = next((s for s in data if s.get('service',{}).get('name') == 'ikiss-api'), None)
 print(svc['service']['id'] if svc else '')
 " 2>/dev/null || echo "")
           fi
 
           if [ -z "$SERVICE_ID" ]; then
-            echo "::error::Nenhum serviço faren-api encontrado no Render."
+            echo "::error::Nenhum serviço ikiss-api encontrado no Render."
             echo "Configure o secret RENDER_SERVICE_ID em Settings → Secrets → Actions."
             echo "Veja SETUP.md → 'Após reativar: recriar o serviço no Render'."
             exit 1

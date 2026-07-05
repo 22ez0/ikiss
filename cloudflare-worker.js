@@ -1,5 +1,5 @@
 // Ikiss — Cloudflare Worker on route ikiss.me/*
-// Last sync from production: 2026-04-27
+// Last sync from production: 2026-07-04
 // Five responsibilities:
 //   1. Proxy /api/* to one of N Render backends (failover on 5xx/timeout)
 //   2. Edge-cache GETs (90s trending, 20s profile)
@@ -9,7 +9,7 @@
 //
 // CONFIG (set as Worker env vars in Cloudflare dashboard):
 //   BACKENDS         — comma-separated list of Render origins, in priority order
-//                      e.g. "https://faren-api-1.onrender.com,https://faren-api-2.onrender.com"
+//                      e.g. "https://ikiss-api-1.onrender.com,https://ikiss-api-2.onrender.com"
 //                      Falls back to the legacy single backend if unset.
 //   BACKEND_TIMEOUT_MS  — per-backend request timeout (default 8000)
 //   UNHEALTHY_TTL_SEC   — how long a failed backend is skipped (default 60)
@@ -32,7 +32,7 @@ function getBackends(env) {
 
 function unhealthyKey(origin) {
   // Use a fake hostname inside the worker's cache so it doesn't collide with anything else
-  return new Request(`https://faren-internal.invalid/__unhealthy/${encodeURIComponent(origin)}`);
+  return new Request(`https://ikiss-internal.invalid/__unhealthy/${encodeURIComponent(origin)}`);
 }
 
 async function isUnhealthy(origin) {

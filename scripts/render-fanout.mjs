@@ -7,9 +7,9 @@
  *
  * Actions:
  *   list                    — list all services for every account
- *   set-env <KEY> <VALUE>   — set an env var on every faren-api service
+ *   set-env <KEY> <VALUE>   — set an env var on every ikiss-api service
  *   sync-env <FILE>         — read KEY=VALUE pairs from FILE and set on every service
- *   redeploy                — trigger a redeploy of every faren-api service
+ *   redeploy                — trigger a redeploy of every ikiss-api service
  *   health                  — hit /api/healthz on every service URL
  *
  * Examples:
@@ -27,7 +27,7 @@ import fs from "node:fs";
 
 const API = "https://api.render.com/v1";
 const KEYS = (process.env.RENDER_API_KEYS || "").split(",").map((s) => s.trim()).filter(Boolean);
-const SERVICE_NAME = process.env.RENDER_SERVICE_NAME || "faren-api";
+const SERVICE_NAME = process.env.RENDER_SERVICE_NAME || "ikiss-api";
 
 if (KEYS.length === 0) {
   console.error("RENDER_API_KEYS is empty. Set it to a comma-separated list of Render API keys.");

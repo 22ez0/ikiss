@@ -43,7 +43,7 @@ jobs:
       - name: Upload backup as artifact (retention 30 days)
         uses: actions/upload-artifact@v4
         with:
-          name: faren-db-backup-${{ github.run_id }}
+          name: ikiss-db-backup-${{ github.run_id }}
           path: backups/*.sql.gz
           retention-days: 30
           if-no-files-found: error
