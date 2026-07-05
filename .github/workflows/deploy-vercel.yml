@@ -1,0 +1,50 @@
+name: Deploy API → Vercel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'artifacts/api-server/**'
+      - 'lib/**'
+      - 'vercel.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Only runs when VERCEL_PROJECT_ID secret is configured
+    if: ${{ secrets.VERCEL_PROJECT_ID != '' && secrets.VERCEL_PROJECT_ID != '0' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Pull Vercel environment
+        run: |
+          npx vercel pull --yes \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --environment=production 2>&1 || true
+
+      - name: Deploy to Vercel (production)
+        id: deploy
+        run: |
+          URL=$(npx vercel deploy --prod \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --yes 2>&1 | grep -E '^https://' | tail -1)
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $URL"
+
+      - name: Comment deployment URL on success
+        if: steps.deploy.outputs.url != ''
+        run: echo "✅ API deployed → ${{ steps.deploy.outputs.url }}"
