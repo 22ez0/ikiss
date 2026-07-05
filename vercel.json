@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "functions": {
+    "artifacts/api-server/api/index.ts": {
+      "memory": 512,
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/artifacts/api-server/api/index.ts"
+    }
+  ]
+}
