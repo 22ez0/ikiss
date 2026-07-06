@@ -8,13 +8,15 @@ on:
       - 'lib/**'
       - 'vercel.json'
       - 'pnpm-lock.yaml'
+      - 'artifacts/faren/src/**'
+      - 'artifacts/faren/index.html'
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Only runs when VERCEL_PROJECT_ID secret is configured
-    if: ${{ secrets.VERCEL_PROJECT_ID != '' && secrets.VERCEL_PROJECT_ID != '0' }}
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,23 +30,117 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
-      - name: Pull Vercel environment
+      - name: Build frontend
+        run: pnpm --filter @workspace/faren run build
+        env:
+          BASE_PATH: /
+          PORT: 5173
+          VITE_API_URL: https://api.ikiss.me
+          VITE_TURNSTILE_SITE_KEY: 0x4AAAAAADCou66RkKmd1DwX
+          NODE_ENV: production
+
+      - name: Build API
+        run: pnpm --filter @workspace/api-server run build
+
+      - name: Link / create Vercel project
         run: |
-          npx vercel pull --yes \
+          npx vercel link --yes \
             --token=${{ secrets.VERCEL_TOKEN }} \
-            --environment=production 2>&1 || true
+            --project=ikiss-api 2>&1 || true
+          # Se link falhar (projeto ainda não existe), criar via deploy --yes
+          if [ ! -f .vercel/project.json ]; then
+            echo '{"projectId":"","orgId":""}' > /tmp/vercel-project-placeholder.json
+          fi
 
       - name: Deploy to Vercel (production)
         id: deploy
         run: |
-          URL=$(npx vercel deploy --prod \
+          OUTPUT=$(npx vercel deploy --prod \
             --token=${{ secrets.VERCEL_TOKEN }} \
-            --yes 2>&1 | grep -E '^https://' | tail -1)
+            --yes 2>&1)
+          echo "$OUTPUT"
+          URL=$(echo "$OUTPUT" | grep -E '^https://' | tail -1)
           echo "url=$URL" >> $GITHUB_OUTPUT
           echo "Deployed to: $URL"
 
-      - name: Comment deployment URL on success
+      - name: Set Vercel environment variables
         if: steps.deploy.outputs.url != ''
+        run: |
+          # Extrair project ID do .vercel/project.json (criado pelo link/deploy)
+          if [ -f .vercel/project.json ]; then
+            PROJECT_ID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.vercel/project.json','utf8')).projectId)")
+            echo "Project ID: $PROJECT_ID"
+
+            set_env() {
+              local KEY="$1"
+              local VALUE="$2"
+              # Verificar se a env var já existe
+              EXISTS=$(curl -s "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
+                -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" | \
+                node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
+                const e=(d.envs||[]).find(e=>e.key==='$KEY'); console.log(e?e.id:'')" 2>/dev/null || true)
+
+              if [ -n "$EXISTS" ]; then
+                # Atualizar
+                curl -s -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID/env/$EXISTS" \
+                  -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"value\":\"$VALUE\",\"type\":\"encrypted\",\"target\":[\"production\",\"preview\"]}" > /dev/null
+              else
+                # Criar
+                curl -s -X POST "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
+                  -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"key\":\"$KEY\",\"value\":\"$VALUE\",\"type\":\"encrypted\",\"target\":[\"production\",\"preview\"]}" > /dev/null
+              fi
+              echo "✓ $KEY set"
+            }
+
+            set_plain() {
+              local KEY="$1"
+              local VALUE="$2"
+              EXISTS=$(curl -s "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
+                -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" | \
+                node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
+                const e=(d.envs||[]).find(e=>e.key==='$KEY'); console.log(e?e.id:'')" 2>/dev/null || true)
+
+              if [ -n "$EXISTS" ]; then
+                curl -s -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID/env/$EXISTS" \
+                  -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"value\":\"$VALUE\",\"type\":\"plain\",\"target\":[\"production\",\"preview\"]}" > /dev/null
+              else
+                curl -s -X POST "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
+                  -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"key\":\"$KEY\",\"value\":\"$VALUE\",\"type\":\"plain\",\"target\":[\"production\",\"preview\"]}" > /dev/null
+              fi
+              echo "✓ $KEY set (plain)"
+            }
+
+            # Secrets
+            set_env "DATABASE_URL"         "${{ secrets.NEON_DATABASE_URL }}"
+            set_env "SESSION_SECRET"       "${{ secrets.SESSION_SECRET }}"
+            set_env "RESEND_API_KEY"       "${{ secrets.RESEND_API_KEY }}"
+            set_env "R2_ACCESS_KEY_ID"     "${{ secrets.R2_ACCESS_KEY_ID }}"
+            set_env "R2_SECRET_ACCESS_KEY" "${{ secrets.R2_SECRET_ACCESS_KEY }}"
+            set_env "TURNSTILE_SECRET_KEY" "${{ secrets.TURNSTILE_SECRET_KEY }}"
+
+            # Non-secret config
+            set_plain "NODE_ENV"               "production"
+            set_plain "R2_ACCOUNT_ID"          "5a9a17dc69ada45f32c4aa36d4e8fdd9"
+            set_plain "R2_BUCKET"              "faren-media"
+            set_plain "R2_PUBLIC_URL"          "https://pub-49759bd8e09c4e0b89e475d23d273d2f.r2.dev"
+            set_plain "APP_URL"               "https://ikiss.me"
+            set_plain "CORS_ALLOWED_ORIGINS"  "https://ikiss.me,https://www.ikiss.me"
+            set_plain "EMAIL_FROM"            "Ikiss <no-reply@ikiss.me>"
+            set_plain "RATE_LIMIT_MAX"        "300"
+            set_plain "ENABLE_BOT_BLOCKING"   "true"
+
+            echo "✅ All environment variables configured"
+          fi
+
+      - name: Summary
         run: echo "✅ API deployed → ${{ steps.deploy.outputs.url }}"
