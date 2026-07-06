@@ -13,34 +13,11 @@ on:
 # Requisitos (GitHub Secrets):
 #   VERCEL_TOKEN        — Personal Access Token da Vercel (Account Settings → Tokens, escopo Full Account)
 #   VERCEL_PROJECT_ID   — ID do projeto Vercel (projeto → Settings → General → Project ID)
-#   NEON_DATABASE_URL   — String de conexão PostgreSQL Neon
-#   SESSION_SECRET, RESEND_API_KEY, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, TURNSTILE_SECRET_KEY
+#   NEON_DATABASE_URL, SESSION_SECRET, RESEND_API_KEY,
+#   R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, TURNSTILE_SECRET_KEY
 
 jobs:
-  check-secrets:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Validate required secrets
-        run: |
-          MISSING=""
-          [ -z "${{ secrets.VERCEL_TOKEN }}" ]         && MISSING="$MISSING VERCEL_TOKEN"
-          [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]    && MISSING="$MISSING VERCEL_PROJECT_ID"
-          [ -z "${{ secrets.NEON_DATABASE_URL }}" ]    && MISSING="$MISSING NEON_DATABASE_URL"
-          [ -z "${{ secrets.SESSION_SECRET }}" ]       && MISSING="$MISSING SESSION_SECRET"
-          [ -z "${{ secrets.RESEND_API_KEY }}" ]       && MISSING="$MISSING RESEND_API_KEY"
-          [ -z "${{ secrets.R2_ACCESS_KEY_ID }}" ]     && MISSING="$MISSING R2_ACCESS_KEY_ID"
-          [ -z "${{ secrets.R2_SECRET_ACCESS_KEY }}" ] && MISSING="$MISSING R2_SECRET_ACCESS_KEY"
-          [ -z "${{ secrets.TURNSTILE_SECRET_KEY }}" ] && MISSING="$MISSING TURNSTILE_SECRET_KEY"
-          if [ -n "$MISSING" ]; then
-            echo "::error::Secrets faltando:$MISSING"
-            echo "Para VERCEL_TOKEN: vercel.com → Account Settings → Tokens → Create (escopo Full Account)"
-            echo "Para VERCEL_PROJECT_ID: vercel.com → projeto → Settings → General → Project ID"
-            exit 1
-          fi
-          echo "✓ Todos os secrets obrigatórios configurados"
-
   deploy:
-    needs: check-secrets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,14 +34,37 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build API
-        run: pnpm --filter @workspace/api-server run build
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
 
-      - name: Configure Vercel environment variables
+      - name: Get Vercel Org ID
+        id: vercel_org
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          # Tenta buscar team (org) primeiro; se não tiver, usa conta pessoal
+          ORG_ID=$(curl -sf "https://api.vercel.com/v2/teams" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" | \
+            node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);process.stdout.write(j.teams?.[0]?.id||'')}catch(e){process.stdout.write('')}})" || true)
+
+          if [ -z "$ORG_ID" ]; then
+            ORG_ID=$(curl -sf "https://api.vercel.com/v2/user" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" | \
+              node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(d);process.stdout.write(j.user?.id||'')}catch(e){process.stdout.write('')}})")
+          fi
+
+          if [ -z "$ORG_ID" ]; then
+            echo "::error::Não foi possível obter o Org ID da Vercel. Verifique o VERCEL_TOKEN."
+            exit 1
+          fi
+
+          echo "org_id=$ORG_ID" >> $GITHUB_OUTPUT
+          echo "✓ Vercel Org ID: $ORG_ID"
+
+      - name: Configure env vars on Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          # Secrets — acessados via process.env no node -e abaixo
           SECRET_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
           SECRET_SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           SECRET_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
@@ -72,67 +72,39 @@ jobs:
           SECRET_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           SECRET_TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
-          # Retorna o ID de uma env var existente (vazio se não existe).
           get_env_id() {
             local KEY="$1"
             curl -sf "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
-              -H "Authorization: Bearer $VERCEL_TOKEN" \
-            | node -e "
-                let raw='';
-                process.stdin.on('data', d => raw += d);
-                process.stdin.on('end', () => {
-                  try {
-                    const envs = JSON.parse(raw).envs || [];
-                    const found = envs.find(x => x.key === '$KEY');
-                    process.stdout.write(found ? found.id : '');
-                  } catch (e) { process.stdout.write(''); }
-                });"
+              -H "Authorization: Bearer $VERCEL_TOKEN" | \
+              node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{const e=JSON.parse(d).envs||[];const f=e.find(x=>x.key==='$KEY');process.stdout.write(f?f.id:'')}catch(e){process.stdout.write('')}})"
           }
 
-          # Cria ou atualiza uma env var. Falha com exit 1 em HTTP != 2xx.
-          # $1 = chave Vercel, $2 = nome da variável de ambiente shell com o valor, $3 = tipo (default: encrypted)
           upsert_env() {
-            local KEY="$1"
-            local SHELL_VAR="$2"
-            local TYPE="${3:-encrypted}"
+            local KEY="$1" SHELL_VAR="$2" TYPE="${3:-encrypted}"
             local VALUE="${!SHELL_VAR}"
+            local PAYLOAD EXISTING_ID HTTP
 
-            # Serializa payload via node para evitar injeção de shell em valores com aspas/newlines
-            local PAYLOAD
-            PAYLOAD=$(KEY="$KEY" TYPE="$TYPE" ENV_VALUE="$VALUE" node -e "
-              process.stdout.write(JSON.stringify({
-                key:    process.env.KEY,
-                value:  process.env.ENV_VALUE,
-                type:   process.env.TYPE,
-                target: ['production', 'preview']
-              }));")
-
-            local EXISTING_ID HTTP
+            PAYLOAD=$(KEY="$KEY" TYPE="$TYPE" VAL="$VALUE" node -e "process.stdout.write(JSON.stringify({key:process.env.KEY,value:process.env.VAL,type:process.env.TYPE,target:['production','preview']}))")
             EXISTING_ID=$(get_env_id "$KEY")
 
             if [ -n "$EXISTING_ID" ]; then
               HTTP=$(curl -sf -o /dev/null -w "%{http_code}" -X PATCH \
                 "https://api.vercel.com/v9/projects/$PROJECT_ID/env/$EXISTING_ID" \
                 -H "Authorization: Bearer $VERCEL_TOKEN" \
-                -H "Content-Type: application/json" \
-                --data-raw "$PAYLOAD")
-              echo "✓ $KEY atualizado (HTTP $HTTP)"
+                -H "Content-Type: application/json" --data-raw "$PAYLOAD")
             else
               HTTP=$(curl -sf -o /dev/null -w "%{http_code}" -X POST \
                 "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
                 -H "Authorization: Bearer $VERCEL_TOKEN" \
-                -H "Content-Type: application/json" \
-                --data-raw "$PAYLOAD")
-              echo "✓ $KEY criado (HTTP $HTTP)"
+                -H "Content-Type: application/json" --data-raw "$PAYLOAD")
             fi
 
             case "$HTTP" in
-              2*) ;;
+              2*) echo "✓ $KEY (HTTP $HTTP)" ;;
               *) echo "::error::Falha ao configurar $KEY (HTTP $HTTP)"; exit 1 ;;
             esac
           }
 
-          # ── Secrets (encrypted) ───────────────────────────────────────────────
           upsert_env "DATABASE_URL"         "SECRET_DATABASE_URL"
           upsert_env "SESSION_SECRET"       "SECRET_SESSION_SECRET"
           upsert_env "RESEND_API_KEY"       "SECRET_RESEND_API_KEY"
@@ -140,7 +112,6 @@ jobs:
           upsert_env "R2_SECRET_ACCESS_KEY" "SECRET_R2_SECRET_ACCESS_KEY"
           upsert_env "TURNSTILE_SECRET_KEY" "SECRET_TURNSTILE_SECRET_KEY"
 
-          # ── Config não-secreta (plain) — valores inline via variáveis de ambiente ─
           export PLAIN_NODE_ENV="production"
           export PLAIN_R2_ACCOUNT_ID="5a9a17dc69ada45f32c4aa36d4e8fdd9"
           export PLAIN_R2_BUCKET="faren-media"
@@ -152,87 +123,44 @@ jobs:
           export PLAIN_BOT_BLOCKING="true"
 
           upsert_env "NODE_ENV"              "PLAIN_NODE_ENV"       "plain"
-          upsert_env "R2_ACCOUNT_ID"        "PLAIN_R2_ACCOUNT_ID"  "plain"
-          upsert_env "R2_BUCKET"            "PLAIN_R2_BUCKET"      "plain"
-          upsert_env "R2_PUBLIC_URL"        "PLAIN_R2_PUBLIC_URL"  "plain"
-          upsert_env "APP_URL"              "PLAIN_APP_URL"        "plain"
-          upsert_env "CORS_ALLOWED_ORIGINS" "PLAIN_CORS_ORIGINS"   "plain"
-          upsert_env "EMAIL_FROM"           "PLAIN_EMAIL_FROM"     "plain"
-          upsert_env "RATE_LIMIT_MAX"       "PLAIN_RATE_LIMIT_MAX" "plain"
-          upsert_env "ENABLE_BOT_BLOCKING"  "PLAIN_BOT_BLOCKING"   "plain"
+          upsert_env "R2_ACCOUNT_ID"         "PLAIN_R2_ACCOUNT_ID"  "plain"
+          upsert_env "R2_BUCKET"             "PLAIN_R2_BUCKET"      "plain"
+          upsert_env "R2_PUBLIC_URL"         "PLAIN_R2_PUBLIC_URL"  "plain"
+          upsert_env "APP_URL"               "PLAIN_APP_URL"        "plain"
+          upsert_env "CORS_ALLOWED_ORIGINS"  "PLAIN_CORS_ORIGINS"   "plain"
+          upsert_env "EMAIL_FROM"            "PLAIN_EMAIL_FROM"     "plain"
+          upsert_env "RATE_LIMIT_MAX"        "PLAIN_RATE_LIMIT_MAX" "plain"
+          upsert_env "ENABLE_BOT_BLOCKING"   "PLAIN_BOT_BLOCKING"   "plain"
 
-          echo "✅ Todas as variáveis de ambiente configuradas no Vercel"
+          echo "✅ Todas as variáveis configuradas no Vercel"
 
-      - name: Trigger Vercel deployment (REST API)
+      - name: Pull Vercel project settings
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ steps.vercel_org.outputs.org_id }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+
+      - name: Build for Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ steps.vercel_org.outputs.org_id }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel build --prod --token=$VERCEL_TOKEN
+
+      - name: Deploy to Vercel (production)
         id: deploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ steps.vercel_org.outputs.org_id }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          SHA="${{ github.sha }}"
-          REPO_ID="1212812914"   # ID numérico de 22ez0/ikiss no GitHub
-
-          PAYLOAD=$(PROJECT_ID="$PROJECT_ID" SHA="$SHA" REPO_ID="$REPO_ID" node -e "
-            process.stdout.write(JSON.stringify({
-              name: 'ikiss-api',
-              project: process.env.PROJECT_ID,
-              target: 'production',
-              gitSource: {
-                type: 'github',
-                repoId: process.env.REPO_ID,
-                ref: 'main',
-                sha: process.env.SHA
-              }
-            }));")
-
-          # Captura corpo + código HTTP separados pelo separador \n
-          RESPONSE=$(curl -sf -w '\n%{http_code}' -X POST \
-            "https://api.vercel.com/v13/deployments?forceNew=1" \
-            -H "Authorization: Bearer $VERCEL_TOKEN" \
-            -H "Content-Type: application/json" \
-            --data-raw "$PAYLOAD")
-
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-
-          case "$HTTP_CODE" in
-            2*) ;;
-            *)
-              ERR=$(echo "$BODY" | node -e "
-                let r='';process.stdin.on('data',d=>r+=d);
-                process.stdin.on('end',()=>{
-                  try{const d=JSON.parse(r);process.stdout.write(d.error?.message||d.error?.code||r.slice(0,200))}
-                  catch(e){process.stdout.write(r.slice(0,200))}
-                });")
-              echo "::error::Falha ao disparar deploy (HTTP $HTTP_CODE): $ERR"
-              exit 1 ;;
-          esac
-
-          DEPLOY_URL=$(echo "$BODY" | node -e "
-            let r='';process.stdin.on('data',d=>r+=d);
-            process.stdin.on('end',()=>{
-              try{const d=JSON.parse(r);process.stdout.write(d.url?'https://'+d.url:'')}
-              catch(e){process.stdout.write('')}
-            });")
-
-          DEPLOY_ID=$(echo "$BODY" | node -e "
-            let r='';process.stdin.on('data',d=>r+=d);
-            process.stdin.on('end',()=>{
-              try{const d=JSON.parse(r);process.stdout.write(d.id||'')}
-              catch(e){process.stdout.write('')}
-            });")
-
-          if [ -z "$DEPLOY_URL" ]; then
-            echo "::error::Deploy disparado mas URL não retornada. Certifique-se de que o projeto Vercel está linkado ao repositório GitHub no painel vercel.com."
-            exit 1
-          fi
-
+          DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN)
           echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
-          echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
-          echo "✅ Deployment triggered: $DEPLOY_URL (id: $DEPLOY_ID)"
+          echo "✅ Deploy concluído: $DEPLOY_URL"
 
       - name: Summary
         run: |
-          echo "## Deploy Vercel → API" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **${{ steps.deploy.outputs.url }}**" >> $GITHUB_STEP_SUMMARY
-          echo "Deploy ID: \`${{ steps.deploy.outputs.deploy_id }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Deploy Vercel → API" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
