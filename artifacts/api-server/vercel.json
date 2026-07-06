@@ -4,8 +4,7 @@
   "functions": {
     "api/handler.mjs": {
       "memory": 512,
-      "maxDuration": 30,
-      "runtime": "nodejs22.x"
+      "maxDuration": 30
     }
   },
   "rewrites": [
