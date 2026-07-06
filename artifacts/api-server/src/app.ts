@@ -63,25 +63,25 @@ function botBlock(req: express.Request, res: express.Response, next: express.Nex
 
 app.set("trust proxy", 1);
 
-app.use(
-  pinoHttp({
-    logger,
-    serializers: {
-      req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
-        };
-      },
-      res(res) {
-        return {
-          statusCode: res.statusCode,
-        };
-      },
+// pino-http ESM interop: cast necessário com moduleResolution:bundler
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+app.use((pinoHttp as any)({
+  logger,
+  serializers: {
+    req(req: { id: unknown; method: string; url?: string }) {
+      return {
+        id: req.id,
+        method: req.method,
+        url: req.url?.split("?")[0],
+      };
     },
-  }),
-);
+    res(res: { statusCode: number }) {
+      return {
+        statusCode: res.statusCode,
+      };
+    },
+  },
+}));
 app.use((_req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
