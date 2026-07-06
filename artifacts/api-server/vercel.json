@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd ../.. && pnpm --filter @workspace/api-zod run build && pnpm --filter @workspace/api-server run build",
+  "buildCommand": "pnpm run build",
   "functions": {
     "api/handler.mjs": {
       "memory": 512,
