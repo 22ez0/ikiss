@@ -1,20 +1,28 @@
 /**
- * Vercel-specific build: bundles api/index.ts → api/vercel-dist/handler.cjs
- * Uses outdir (not outfile) because esbuild-plugin-pino emits multiple files.
+ * Vercel-specific build: bundles api/index.ts → <root>/api/index.js (CJS)
+ *
+ * Outputs to the ROOT api/ directory (where package.json has no "type":"module"),
+ * so Node.js treats the .js file as CommonJS — which Vercel supports natively.
+ *
+ * Run from repo root: node artifacts/api-server/build-vercel.mjs
  */
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm } from "node:fs/promises";
+import { rm, mkdir } from "node:fs/promises";
 
 globalThis.require = createRequire(import.meta.url);
 
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
-const outDir = path.resolve(artifactDir, "api/vercel-dist");
+// Output goes to <repo-root>/api/ so it sits under the root package.json
+// (no "type":"module"), making .js files be treated as CJS by Node / Vercel.
+const repoRoot = path.resolve(artifactDir, "../..");
+const outDir = path.resolve(repoRoot, "api");
 
 await rm(outDir, { recursive: true, force: true });
+await mkdir(outDir, { recursive: true });
 
 await esbuild({
   entryPoints: [path.resolve(artifactDir, "api/index.ts")],
@@ -22,7 +30,6 @@ await esbuild({
   bundle: true,
   format: "cjs",
   outdir: outDir,
-  outExtension: { ".js": ".cjs" },
   logLevel: "info",
   external: [
     "*.node",
@@ -40,4 +47,4 @@ await esbuild({
   process.exit(1);
 });
 
-console.log("✅ Vercel handler built → api/vercel-dist/index.cjs");
+console.log("✅ Vercel handler built → api/index.js (CJS, root level)");
