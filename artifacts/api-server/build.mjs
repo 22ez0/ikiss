@@ -57,10 +57,10 @@ async function buildAll() {
     ],
   });
 
-  // Build 2: Vercel serverless handler (no pino workers, pre-compiled JS so Vercel
-  // does NOT run tsc on it — avoids TypeScript errors from monorepo workspace packages)
+  // Build 2: Vercel serverless handler — usa src/app.ts diretamente
+  // (api/index.ts foi removido para não ativar o compilador TypeScript do Vercel)
   await esbuild({
-    entryPoints: [path.resolve(artifactDir, "api/index.ts")],
+    entryPoints: [path.resolve(artifactDir, "src/app.ts")],
     platform: "node",
     bundle: true,
     format: "esm",
