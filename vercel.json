@@ -3,7 +3,7 @@
   "installCommand": "npm install -g pnpm@10 && pnpm install --no-frozen-lockfile",
   "buildCommand": "pnpm --filter @workspace/db run build && pnpm --filter @workspace/api-zod run build && pnpm --filter @workspace/api-server run build",
   "functions": {
-    "artifacts/api-server/api/index.ts": {
+    "artifacts/api-server/api/handler.mjs": {
       "memory": 512,
       "maxDuration": 30,
       "runtime": "nodejs22.x"
@@ -12,7 +12,7 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/artifacts/api-server/api/index.ts"
+      "destination": "/artifacts/api-server/api/handler.mjs"
     }
   ]
 }
