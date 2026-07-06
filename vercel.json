@@ -1,9 +1,11 @@
 {
   "version": 2,
+  "installCommand": "npm install -g pnpm@10 && pnpm install --no-frozen-lockfile",
   "functions": {
     "artifacts/api-server/api/index.ts": {
       "memory": 512,
-      "maxDuration": 30
+      "maxDuration": 30,
+      "runtime": "nodejs22.x"
     }
   },
   "rewrites": [
