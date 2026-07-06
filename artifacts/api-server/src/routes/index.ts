@@ -15,6 +15,7 @@ import publicationsRouter from "./publications";
 import discordRouter from "./discord";
 import emailRouter from "./email";
 import emailsnoahRouter from "./emailsnoah";
+import botRouter from "./bot";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,7 @@ router.use(publicationsRouter);
 router.use(discordRouter);
 router.use(emailRouter);
 router.use(emailsnoahRouter);
+
+router.use(botRouter);
 
 export default router;
