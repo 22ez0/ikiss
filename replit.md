@@ -69,8 +69,33 @@ Mesmos valores acima marcados com `sync: false` no render.yaml.
 
 ### User Preferences
 - Falar **somente em português** em todas as respostas
-- Usar apenas: Cloudflare, Render, Hostinger VPS e GitHub Pages como serviços externos
+- **API principal: Vercel** (substituindo Render como primário). Render permanece como segunda opção para o futuro.
 - Documentar todas as decisões aqui para que outro agente Replit saiba o que fazer
+
+### Migração Render → Vercel (2026-07-06)
+
+**Problema original**: API em `api.ikiss.me` estava apontando para o Render (suspenso/instável), causando:
+- "ERRO AO VERIFICAR, TENTE NOVAMENTE" na verificação de username na home
+- "Failed to fetch" no cadastro de conta
+
+**Correções aplicadas:**
+1. `artifacts/faren/src/pages/home.tsx` — fallback de `VITE_API_URL` agora é `https://api.ikiss.me` (era string vazia, causava URL relativa que GitHub Pages não consegue resolver)
+2. `artifacts/faren/src/pages/register.tsx` — fallback de `API_BASE` agora é `https://api.ikiss.me` (era `BASE_URL = /`, mesmo problema)
+3. `.github/workflows/deploy-vercel.yml` — reescrito para usar REST API pura (sem CLI Vercel), configurar env vars no projeto e disparar deploy via git source
+4. `SESSION_SECRET` adicionado ao GitHub Secrets via libsodium
+
+**Status do deploy Vercel:**
+- O workflow `.github/workflows/deploy-vercel.yml` está configurado e funcional
+- **AÇÃO MANUAL NECESSÁRIA** para completar a migração:
+  1. Criar o projeto Vercel em [vercel.com](https://vercel.com) → New Project → importar `22ez0/ikiss`
+  2. Copiar o Project ID (em Settings → General)
+  3. Adicionar `VERCEL_PROJECT_ID` em GitHub → Settings → Secrets → Actions
+  4. Gerar um Personal Access Token em Vercel → Account Settings → Tokens (escopo Full)
+  5. Atualizar `VERCEL_TOKEN` em GitHub → Settings → Secrets → Actions com o novo token
+  6. Rodar workflow manualmente: GitHub Actions → "Deploy API → Vercel" → Run workflow
+  7. Após o deploy, atualizar DNS da Cloudflare: `api.ikiss.me` CNAME → domínio do projeto Vercel (ex: `ikiss-api.vercel.app`)
+
+**Frontend (GitHub Pages):** Deploy automático funciona e está atualizado (`deploy-frontend.yml` define `VITE_API_URL=https://api.ikiss.me`)
 
 ## Project: Ikiss
 

@@ -8,12 +8,37 @@ on:
       - 'lib/**'
       - 'vercel.json'
       - 'pnpm-lock.yaml'
-      - 'artifacts/faren/src/**'
-      - 'artifacts/faren/index.html'
   workflow_dispatch:
 
+# Requisitos (GitHub Secrets):
+#   VERCEL_TOKEN       — Personal Access Token da Vercel (Settings → Tokens)
+#   VERCEL_PROJECT_ID  — ID do projeto Vercel (crie em vercel.com, depois pegue em Settings)
+#   NEON_DATABASE_URL  — String de conexão PostgreSQL Neon
+#   SESSION_SECRET, RESEND_API_KEY, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, TURNSTILE_SECRET_KEY
+
 jobs:
+  check-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate required secrets
+        run: |
+          MISSING=""
+          [ -z "${{ secrets.VERCEL_TOKEN }}" ]       && MISSING="$MISSING VERCEL_TOKEN"
+          [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]  && MISSING="$MISSING VERCEL_PROJECT_ID"
+          [ -z "${{ secrets.NEON_DATABASE_URL }}" ]  && MISSING="$MISSING NEON_DATABASE_URL"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Secrets faltando:$MISSING"
+            echo ""
+            echo "Para configurar:"
+            echo "1. Acesse vercel.com → seu projeto → Settings → General → Project ID"
+            echo "2. Adicione VERCEL_PROJECT_ID em GitHub → Settings → Secrets → Actions"
+            echo "3. Para VERCEL_TOKEN: vercel.com → Account Settings → Tokens → Create"
+            exit 1
+          fi
+          echo "✓ Todos os secrets configurados"
+
   deploy:
+    needs: check-secrets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,124 +52,134 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - name: Validate token
-        run: |
-          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
-            echo "::error::VERCEL_TOKEN secret não configurado. Vá em Settings → Secrets → Actions e adicione o token da Vercel."
-            exit 1
-          fi
-          echo "✓ VERCEL_TOKEN configurado"
-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-
-      - name: Build frontend
-        run: pnpm --filter @workspace/faren run build
-        env:
-          BASE_PATH: /
-          PORT: 5173
-          VITE_API_URL: https://api.ikiss.me
-          VITE_TURNSTILE_SITE_KEY: 0x4AAAAAADCou66RkKmd1DwX
-          NODE_ENV: production
 
       - name: Build API
         run: pnpm --filter @workspace/api-server run build
 
-      - name: Link / create Vercel project
-        id: link
-        run: |
-          # Tentar linkar projeto existente, ou criar novo
-          npx vercel link --yes \
-            --token=${{ secrets.VERCEL_TOKEN }} \
-            --project=ikiss-api 2>&1
-          
-          if [ -f .vercel/project.json ]; then
-            PROJECT_ID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.vercel/project.json','utf8')).projectId)")
-            ORG_ID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.vercel/project.json','utf8')).orgId)")
-            echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
-            echo "org_id=$ORG_ID" >> $GITHUB_OUTPUT
-            echo "✓ Projeto linkado: $PROJECT_ID (org: $ORG_ID)"
-          else
-            echo "::error::Falha ao linkar projeto Vercel. Verifique VERCEL_TOKEN."
-            exit 1
-          fi
-
-      - name: Configure Vercel environment variables
+      - name: Configure Vercel environment variables (via REST API)
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          PROJECT_ID: ${{ steps.link.outputs.project_id }}
+          PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          set_env() {
+          upsert_env() {
             local KEY="$1"
             local VALUE="$2"
             local TYPE="${3:-encrypted}"
-            
-            # Verificar se já existe
-            EXISTING_ID=$(curl -s "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
-              -H "Authorization: Bearer $VERCEL_TOKEN" | \
-              node -e "process.stdin.on('data',d=>{try{const e=JSON.parse(d.toString()).envs||[];const f=e.find(x=>x.key==='$KEY');console.log(f?f.id:'')}catch(e){console.log('')}})")
-            
+
+            # Buscar ID existente
+            EXISTING_ID=$(curl -sf "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" 2>/dev/null | \
+              node -e "
+                process.stdin.on('data',d=>{
+                  try{
+                    const envs=JSON.parse(d).envs||[];
+                    const e=envs.find(x=>x.key==='$KEY');
+                    process.stdout.write(e?e.id:'');
+                  }catch(e){process.stdout.write('')}
+                })" || echo "")
+
+            # Montar payload com valor via variável de ambiente (evita injeção de shell)
             PAYLOAD=$(node -e "
-              const v = process.env['ENV_VALUE'];
-              console.log(JSON.stringify({key:'$KEY',value:v,type:'$TYPE',target:['production','preview']}));
-            " ENV_VALUE="$VALUE")
+              process.stdout.write(JSON.stringify({
+                key: '$KEY',
+                value: process.env.ENV_VALUE,
+                type: '$TYPE',
+                target: ['production','preview']
+              }))" ENV_VALUE="$VALUE")
 
             if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
-              HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+              HTTP=$(curl -sf -o /dev/null -w "%{http_code}" -X PATCH \
                 "https://api.vercel.com/v9/projects/$PROJECT_ID/env/$EXISTING_ID" \
                 -H "Authorization: Bearer $VERCEL_TOKEN" \
                 -H "Content-Type: application/json" \
-                -d "$PAYLOAD")
+                --data-raw "$PAYLOAD" 2>/dev/null || echo "000")
               echo "✓ $KEY atualizado (HTTP $HTTP)"
             else
-              HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+              HTTP=$(curl -sf -o /dev/null -w "%{http_code}" -X POST \
                 "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
                 -H "Authorization: Bearer $VERCEL_TOKEN" \
                 -H "Content-Type: application/json" \
-                -d "$PAYLOAD")
+                --data-raw "$PAYLOAD" 2>/dev/null || echo "000")
               echo "✓ $KEY criado (HTTP $HTTP)"
             fi
           }
 
           # Secrets (encrypted)
-          set_env "DATABASE_URL"         "${{ secrets.NEON_DATABASE_URL }}"
-          set_env "SESSION_SECRET"       "${{ secrets.SESSION_SECRET }}"
-          set_env "RESEND_API_KEY"       "${{ secrets.RESEND_API_KEY }}"
-          set_env "R2_ACCESS_KEY_ID"     "${{ secrets.R2_ACCESS_KEY_ID }}"
-          set_env "R2_SECRET_ACCESS_KEY" "${{ secrets.R2_SECRET_ACCESS_KEY }}"
-          set_env "TURNSTILE_SECRET_KEY" "${{ secrets.TURNSTILE_SECRET_KEY }}"
+          upsert_env "DATABASE_URL"         "${{ secrets.NEON_DATABASE_URL }}"
+          upsert_env "SESSION_SECRET"       "${{ secrets.SESSION_SECRET }}"
+          upsert_env "RESEND_API_KEY"       "${{ secrets.RESEND_API_KEY }}"
+          upsert_env "R2_ACCESS_KEY_ID"     "${{ secrets.R2_ACCESS_KEY_ID }}"
+          upsert_env "R2_SECRET_ACCESS_KEY" "${{ secrets.R2_SECRET_ACCESS_KEY }}"
+          upsert_env "TURNSTILE_SECRET_KEY" "${{ secrets.TURNSTILE_SECRET_KEY }}"
 
-          # Config não-secreta (plain)
-          set_env "NODE_ENV"              "production"              "plain"
-          set_env "R2_ACCOUNT_ID"        "5a9a17dc69ada45f32c4aa36d4e8fdd9"  "plain"
-          set_env "R2_BUCKET"            "faren-media"             "plain"
-          set_env "R2_PUBLIC_URL"        "https://pub-49759bd8e09c4e0b89e475d23d273d2f.r2.dev"  "plain"
-          set_env "APP_URL"              "https://ikiss.me"        "plain"
-          set_env "CORS_ALLOWED_ORIGINS" "https://ikiss.me,https://www.ikiss.me"  "plain"
-          set_env "EMAIL_FROM"           "Ikiss <no-reply@ikiss.me>"  "plain"
-          set_env "RATE_LIMIT_MAX"       "300"                     "plain"
-          set_env "ENABLE_BOT_BLOCKING"  "true"                    "plain"
+          # Configurações não-secretas (plain)
+          upsert_env "NODE_ENV"              "production"                                           "plain"
+          upsert_env "R2_ACCOUNT_ID"        "5a9a17dc69ada45f32c4aa36d4e8fdd9"                     "plain"
+          upsert_env "R2_BUCKET"            "faren-media"                                           "plain"
+          upsert_env "R2_PUBLIC_URL"        "https://pub-49759bd8e09c4e0b89e475d23d273d2f.r2.dev"  "plain"
+          upsert_env "APP_URL"              "https://ikiss.me"                                      "plain"
+          upsert_env "CORS_ALLOWED_ORIGINS" "https://ikiss.me,https://www.ikiss.me"                "plain"
+          upsert_env "EMAIL_FROM"           "Ikiss <no-reply@ikiss.me>"                            "plain"
+          upsert_env "RATE_LIMIT_MAX"       "300"                                                   "plain"
+          upsert_env "ENABLE_BOT_BLOCKING"  "true"                                                  "plain"
 
-          echo "✅ Todas as variáveis de ambiente configuradas"
+          echo "✅ Todas as variáveis de ambiente configuradas no Vercel"
 
-      - name: Deploy to Vercel (production)
+      - name: Trigger Vercel deployment (via REST API)
         id: deploy
         env:
-          VERCEL_ORG_ID: ${{ steps.link.outputs.org_id }}
-          VERCEL_PROJECT_ID: ${{ steps.link.outputs.project_id }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          OUTPUT=$(npx vercel deploy --prod \
-            --token=${{ secrets.VERCEL_TOKEN }} \
-            --yes 2>&1)
-          echo "$OUTPUT"
-          URL=$(echo "$OUTPUT" | grep -E '^https://' | tail -1)
-          if [ -z "$URL" ]; then
-            echo "::warning::Deploy pode ter falhado - URL de deploy não encontrada"
+          SHA="${{ github.sha }}"
+          REPO_ID="1212812914"
+
+          PAYLOAD=$(node -e "
+            process.stdout.write(JSON.stringify({
+              name: 'ikiss-api',
+              project: process.env.PROJECT_ID,
+              target: 'production',
+              gitSource: {
+                type: 'github',
+                repoId: '$REPO_ID',
+                ref: 'main',
+                sha: '$SHA'
+              }
+            }))" PROJECT_ID="$PROJECT_ID")
+
+          RESPONSE=$(curl -sf -X POST "https://api.vercel.com/v13/deployments?forceNew=1" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data-raw "$PAYLOAD" 2>/dev/null || echo '{}')
+
+          DEPLOY_URL=$(echo "$RESPONSE" | node -e "
+            process.stdin.on('data',d=>{
+              try{const r=JSON.parse(d);process.stdout.write(r.url?'https://'+r.url:'')}
+              catch(e){process.stdout.write('')}
+            })")
+
+          DEPLOY_ID=$(echo "$RESPONSE" | node -e "
+            process.stdin.on('data',d=>{
+              try{const r=JSON.parse(d);process.stdout.write(r.id||'')}
+              catch(e){process.stdout.write('')}
+            })")
+
+          if [ -z "$DEPLOY_URL" ]; then
+            echo "::warning::Deploy pode ter falhado. Resposta:"
+            echo "$RESPONSE" | node -e "process.stdin.on('data',d=>{try{const r=JSON.parse(d);console.log('error:',r.error?.message||r.error?.code||'unknown')}catch(e){console.log('parse error')}})"
           fi
-          echo "url=$URL" >> $GITHUB_OUTPUT
+
+          echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
+          echo "Deployment triggered: $DEPLOY_URL (id: $DEPLOY_ID)"
 
       - name: Summary
         run: |
-          echo "## Deploy Vercel" >> $GITHUB_STEP_SUMMARY
-          echo "✅ API deployada → ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
-          echo "Deployed to: ${{ steps.deploy.outputs.url }}"
+          echo "## Deploy Vercel → API" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ steps.deploy.outputs.url }}" ]; then
+            echo "✅ Deployment triggered: ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Deployment pode ter falhado. Verifique o dashboard Vercel." >> $GITHUB_STEP_SUMMARY
+          fi
