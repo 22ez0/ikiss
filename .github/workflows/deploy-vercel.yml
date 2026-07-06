@@ -15,8 +15,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +26,14 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+
+      - name: Validate token
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+            echo "::error::VERCEL_TOKEN secret não configurado. Vá em Settings → Secrets → Actions e adicione o token da Vercel."
+            exit 1
+          fi
+          echo "✓ VERCEL_TOKEN configurado"
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -45,102 +51,100 @@ jobs:
         run: pnpm --filter @workspace/api-server run build
 
       - name: Link / create Vercel project
+        id: link
         run: |
+          # Tentar linkar projeto existente, ou criar novo
           npx vercel link --yes \
             --token=${{ secrets.VERCEL_TOKEN }} \
-            --project=ikiss-api 2>&1 || true
-          # Se link falhar (projeto ainda não existe), criar via deploy --yes
-          if [ ! -f .vercel/project.json ]; then
-            echo '{"projectId":"","orgId":""}' > /tmp/vercel-project-placeholder.json
+            --project=ikiss-api 2>&1
+          
+          if [ -f .vercel/project.json ]; then
+            PROJECT_ID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.vercel/project.json','utf8')).projectId)")
+            ORG_ID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.vercel/project.json','utf8')).orgId)")
+            echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
+            echo "org_id=$ORG_ID" >> $GITHUB_OUTPUT
+            echo "✓ Projeto linkado: $PROJECT_ID (org: $ORG_ID)"
+          else
+            echo "::error::Falha ao linkar projeto Vercel. Verifique VERCEL_TOKEN."
+            exit 1
           fi
+
+      - name: Configure Vercel environment variables
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PROJECT_ID: ${{ steps.link.outputs.project_id }}
+        run: |
+          set_env() {
+            local KEY="$1"
+            local VALUE="$2"
+            local TYPE="${3:-encrypted}"
+            
+            # Verificar se já existe
+            EXISTING_ID=$(curl -s "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" | \
+              node -e "process.stdin.on('data',d=>{try{const e=JSON.parse(d.toString()).envs||[];const f=e.find(x=>x.key==='$KEY');console.log(f?f.id:'')}catch(e){console.log('')}})")
+            
+            PAYLOAD=$(node -e "
+              const v = process.env['ENV_VALUE'];
+              console.log(JSON.stringify({key:'$KEY',value:v,type:'$TYPE',target:['production','preview']}));
+            " ENV_VALUE="$VALUE")
+
+            if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
+              HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+                "https://api.vercel.com/v9/projects/$PROJECT_ID/env/$EXISTING_ID" \
+                -H "Authorization: Bearer $VERCEL_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "$PAYLOAD")
+              echo "✓ $KEY atualizado (HTTP $HTTP)"
+            else
+              HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
+                -H "Authorization: Bearer $VERCEL_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "$PAYLOAD")
+              echo "✓ $KEY criado (HTTP $HTTP)"
+            fi
+          }
+
+          # Secrets (encrypted)
+          set_env "DATABASE_URL"         "${{ secrets.NEON_DATABASE_URL }}"
+          set_env "SESSION_SECRET"       "${{ secrets.SESSION_SECRET }}"
+          set_env "RESEND_API_KEY"       "${{ secrets.RESEND_API_KEY }}"
+          set_env "R2_ACCESS_KEY_ID"     "${{ secrets.R2_ACCESS_KEY_ID }}"
+          set_env "R2_SECRET_ACCESS_KEY" "${{ secrets.R2_SECRET_ACCESS_KEY }}"
+          set_env "TURNSTILE_SECRET_KEY" "${{ secrets.TURNSTILE_SECRET_KEY }}"
+
+          # Config não-secreta (plain)
+          set_env "NODE_ENV"              "production"              "plain"
+          set_env "R2_ACCOUNT_ID"        "5a9a17dc69ada45f32c4aa36d4e8fdd9"  "plain"
+          set_env "R2_BUCKET"            "faren-media"             "plain"
+          set_env "R2_PUBLIC_URL"        "https://pub-49759bd8e09c4e0b89e475d23d273d2f.r2.dev"  "plain"
+          set_env "APP_URL"              "https://ikiss.me"        "plain"
+          set_env "CORS_ALLOWED_ORIGINS" "https://ikiss.me,https://www.ikiss.me"  "plain"
+          set_env "EMAIL_FROM"           "Ikiss <no-reply@ikiss.me>"  "plain"
+          set_env "RATE_LIMIT_MAX"       "300"                     "plain"
+          set_env "ENABLE_BOT_BLOCKING"  "true"                    "plain"
+
+          echo "✅ Todas as variáveis de ambiente configuradas"
 
       - name: Deploy to Vercel (production)
         id: deploy
+        env:
+          VERCEL_ORG_ID: ${{ steps.link.outputs.org_id }}
+          VERCEL_PROJECT_ID: ${{ steps.link.outputs.project_id }}
         run: |
           OUTPUT=$(npx vercel deploy --prod \
             --token=${{ secrets.VERCEL_TOKEN }} \
             --yes 2>&1)
           echo "$OUTPUT"
           URL=$(echo "$OUTPUT" | grep -E '^https://' | tail -1)
-          echo "url=$URL" >> $GITHUB_OUTPUT
-          echo "Deployed to: $URL"
-
-      - name: Set Vercel environment variables
-        if: steps.deploy.outputs.url != ''
-        run: |
-          # Extrair project ID do .vercel/project.json (criado pelo link/deploy)
-          if [ -f .vercel/project.json ]; then
-            PROJECT_ID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.vercel/project.json','utf8')).projectId)")
-            echo "Project ID: $PROJECT_ID"
-
-            set_env() {
-              local KEY="$1"
-              local VALUE="$2"
-              # Verificar se a env var já existe
-              EXISTS=$(curl -s "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
-                -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" | \
-                node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
-                const e=(d.envs||[]).find(e=>e.key==='$KEY'); console.log(e?e.id:'')" 2>/dev/null || true)
-
-              if [ -n "$EXISTS" ]; then
-                # Atualizar
-                curl -s -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID/env/$EXISTS" \
-                  -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
-                  -H "Content-Type: application/json" \
-                  -d "{\"value\":\"$VALUE\",\"type\":\"encrypted\",\"target\":[\"production\",\"preview\"]}" > /dev/null
-              else
-                # Criar
-                curl -s -X POST "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
-                  -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
-                  -H "Content-Type: application/json" \
-                  -d "{\"key\":\"$KEY\",\"value\":\"$VALUE\",\"type\":\"encrypted\",\"target\":[\"production\",\"preview\"]}" > /dev/null
-              fi
-              echo "✓ $KEY set"
-            }
-
-            set_plain() {
-              local KEY="$1"
-              local VALUE="$2"
-              EXISTS=$(curl -s "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
-                -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" | \
-                node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
-                const e=(d.envs||[]).find(e=>e.key==='$KEY'); console.log(e?e.id:'')" 2>/dev/null || true)
-
-              if [ -n "$EXISTS" ]; then
-                curl -s -X PATCH "https://api.vercel.com/v9/projects/$PROJECT_ID/env/$EXISTS" \
-                  -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
-                  -H "Content-Type: application/json" \
-                  -d "{\"value\":\"$VALUE\",\"type\":\"plain\",\"target\":[\"production\",\"preview\"]}" > /dev/null
-              else
-                curl -s -X POST "https://api.vercel.com/v9/projects/$PROJECT_ID/env" \
-                  -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
-                  -H "Content-Type: application/json" \
-                  -d "{\"key\":\"$KEY\",\"value\":\"$VALUE\",\"type\":\"plain\",\"target\":[\"production\",\"preview\"]}" > /dev/null
-              fi
-              echo "✓ $KEY set (plain)"
-            }
-
-            # Secrets
-            set_env "DATABASE_URL"         "${{ secrets.NEON_DATABASE_URL }}"
-            set_env "SESSION_SECRET"       "${{ secrets.SESSION_SECRET }}"
-            set_env "RESEND_API_KEY"       "${{ secrets.RESEND_API_KEY }}"
-            set_env "R2_ACCESS_KEY_ID"     "${{ secrets.R2_ACCESS_KEY_ID }}"
-            set_env "R2_SECRET_ACCESS_KEY" "${{ secrets.R2_SECRET_ACCESS_KEY }}"
-            set_env "TURNSTILE_SECRET_KEY" "${{ secrets.TURNSTILE_SECRET_KEY }}"
-
-            # Non-secret config
-            set_plain "NODE_ENV"               "production"
-            set_plain "R2_ACCOUNT_ID"          "5a9a17dc69ada45f32c4aa36d4e8fdd9"
-            set_plain "R2_BUCKET"              "faren-media"
-            set_plain "R2_PUBLIC_URL"          "https://pub-49759bd8e09c4e0b89e475d23d273d2f.r2.dev"
-            set_plain "APP_URL"               "https://ikiss.me"
-            set_plain "CORS_ALLOWED_ORIGINS"  "https://ikiss.me,https://www.ikiss.me"
-            set_plain "EMAIL_FROM"            "Ikiss <no-reply@ikiss.me>"
-            set_plain "RATE_LIMIT_MAX"        "300"
-            set_plain "ENABLE_BOT_BLOCKING"   "true"
-
-            echo "✅ All environment variables configured"
+          if [ -z "$URL" ]; then
+            echo "::warning::Deploy pode ter falhado - URL de deploy não encontrada"
           fi
+          echo "url=$URL" >> $GITHUB_OUTPUT
 
       - name: Summary
-        run: echo "✅ API deployed → ${{ steps.deploy.outputs.url }}"
+        run: |
+          echo "## Deploy Vercel" >> $GITHUB_STEP_SUMMARY
+          echo "✅ API deployada → ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "Deployed to: ${{ steps.deploy.outputs.url }}"
