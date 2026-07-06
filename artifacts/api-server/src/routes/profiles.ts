@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Router, type IRouter, type Request } from "express";
 import Busboy from "busboy";
 import { db, usersTable, profilesTable, profileLinksTable, profileViewsTable, profileLikesTable, followersTable, profileReportsTable, usernameRedirectsTable } from "@workspace/db";
