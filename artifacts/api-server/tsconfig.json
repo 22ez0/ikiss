@@ -8,13 +8,5 @@
     "noImplicitThis": false,
     "noImplicitReturns": false
   },
-  "include": ["src", "api"],
-  "references": [
-    {
-      "path": "../../lib/db"
-    },
-    {
-      "path": "../../lib/api-zod"
-    }
-  ]
+  "include": ["src", "api"]
 }
