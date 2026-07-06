@@ -1,8 +1,9 @@
 {
   "version": 2,
   "installCommand": "npm install -g pnpm@10 && pnpm install --no-frozen-lockfile",
+  "buildCommand": "node artifacts/api-server/build-vercel.mjs",
   "functions": {
-    "artifacts/api-server/api/index.ts": {
+    "artifacts/api-server/api/vercel-dist/index.cjs": {
       "memory": 512,
       "maxDuration": 30,
       "runtime": "nodejs22.x"
@@ -11,7 +12,7 @@
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/artifacts/api-server/api/index.ts"
+      "destination": "/artifacts/api-server/api/vercel-dist/index.cjs"
     }
   ]
 }
