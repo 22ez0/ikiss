@@ -86,7 +86,7 @@ export default function Home() {
     const ctrl = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+        const apiBase = (import.meta.env.VITE_API_URL || 'https://api.ikiss.me').replace(/\/+$/, '');
         const res = await fetch(`${apiBase}/api/users/${encodeURIComponent(u)}`, { signal: ctrl.signal });
         if (res.status === 404) setClaimStatus('available');
         else if (res.ok) setClaimStatus('taken');
@@ -117,7 +117,7 @@ export default function Home() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const apiBase = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+    const apiBase = (import.meta.env.VITE_API_URL || "https://api.ikiss.me").replace(/\/+$/, "");
 
     fetch(`${apiBase}/api/discord/auth/callback`, {
       method: "POST",

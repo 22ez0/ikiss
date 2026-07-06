@@ -25,7 +25,7 @@ const registerSchema = z.object({
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-const API_BASE = `${(import.meta.env.VITE_API_URL || import.meta.env.BASE_URL).replace(/\/+$/, "")}/api`;
+const API_BASE = `${(import.meta.env.VITE_API_URL || 'https://api.ikiss.me').replace(/\/+$/, "")}/api`;
 
 export default function Register() {
   const [, setLocation] = useLocation();
