@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "buildCommand": "pnpm run build",
+  "buildCommand": "cd ../.. && pnpm --filter @workspace/api-zod run build && pnpm --filter @workspace/api-server run build",
   "functions": {
     "api/handler.mjs": {
       "memory": 512,
-      "maxDuration": 30
+      "maxDuration": 30,
+      "runtime": "nodejs22.x"
     }
   },
   "rewrites": [

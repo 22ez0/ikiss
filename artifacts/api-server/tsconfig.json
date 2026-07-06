@@ -3,10 +3,15 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "noImplicitAny": false,
     "noImplicitThis": false,
-    "noImplicitReturns": false
+    "noImplicitReturns": false,
+    "noEmitOnError": false
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }
