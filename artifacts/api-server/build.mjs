@@ -70,6 +70,20 @@ async function buildAll() {
     sourcemap: false,
     banner: BANNER,
   });
+
+  // Build 3: Standalone bot panel handler (no DB, no auth dependency)
+  await esbuild({
+    entryPoints: [path.resolve(artifactDir, "src/bot-standalone.ts")],
+    platform: "node",
+    bundle: true,
+    format: "esm",
+    outfile: path.resolve(artifactDir, "api/bot-handler.mjs"),
+    logLevel: "info",
+    external: EXTERNALS,
+    sourcemap: false,
+    banner: BANNER,
+  });
+
 }
 
 buildAll().catch((err) => {

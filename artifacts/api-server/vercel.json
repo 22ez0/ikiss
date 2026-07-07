@@ -5,9 +5,21 @@
     "api/handler.mjs": {
       "memory": 512,
       "maxDuration": 30
+    },
+    "api/bot-handler.mjs": {
+      "memory": 128,
+      "maxDuration": 30
     }
   },
   "rewrites": [
+    {
+      "source": "/api/bot/:path*",
+      "destination": "/api/bot-handler.mjs"
+    },
+    {
+      "source": "/api/bot",
+      "destination": "/api/bot-handler.mjs"
+    },
     {
       "source": "/(.*)",
       "destination": "/api/handler.mjs"

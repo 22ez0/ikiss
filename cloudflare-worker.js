@@ -15,7 +15,7 @@
 //   UNHEALTHY_TTL_SEC   — how long a failed backend is skipped (default 60)
 
 const SOCIAL_BOTS = /facebookexternalhit|facebookbot|twitterbot|whatsapp|linkedinbot|slackbot|telegrambot|discordbot|pinterestbot|applebot|googlebot|bingbot|duckduckbot|ia_archiver|embedly|outbrain|vkshare|viber|line\/|snapchat|iframely/i;
-const LEGACY_API_ORIGIN = "https://ikiss-api.onrender.com";
+const LEGACY_API_ORIGIN = "https://api.ikiss.me";
 const RESERVED = new Set(["api","health","og","favicon.ico","favicon.png","robots.txt","sitemap.xml","opengraph.jpg","CNAME","404.html","__backends"]);
 
 // Cache TTLs (seconds)
