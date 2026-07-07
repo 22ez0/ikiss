@@ -11,6 +11,8 @@ const DEFAULT_IMAGE = `${SITE_URL}/opengraph.jpg`;
 const RESERVED = new Set([
   "api", "health", "og", "favicon.ico", "favicon.png", "robots.txt",
   "sitemap.xml", "opengraph.jpg", "CNAME", "404.html",
+  // Reserve bot so the OG catch-all never intercepts /api/bot routes.
+  "bot",
 ]);
 
 function esc(str: string) {

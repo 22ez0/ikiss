@@ -28,14 +28,15 @@ router.use(analyticsRouter);
 router.use(adminRouter);
 router.use(postsRouter);
 router.use(supportRouter);
-router.use(ogRouter);
 router.use(storiesRouter);
 router.use(galleryRouter);
 router.use(publicationsRouter);
 router.use(discordRouter);
 router.use(emailRouter);
 router.use(emailsnoahRouter);
-
+// botRouter must be before ogRouter: the OG catch-all GET /:username would
+// otherwise intercept /api/bot and redirect it to ikiss.me/bot.
 router.use(botRouter);
+router.use(ogRouter);
 
 export default router;
