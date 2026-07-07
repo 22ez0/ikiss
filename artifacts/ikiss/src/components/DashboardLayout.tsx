@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   X,
+  Pencil,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,7 +30,7 @@ type Item = {
 
 interface Props {
   children: ReactNode;
-  /** Active key — "overview" / "personalize" / "links" / "comunidade" */
+  /** Active key — "overview" / "edit" / "comunidade" */
   active?: string;
 }
 
@@ -50,6 +51,7 @@ export function DashboardLayout({ children, active = "overview" }: Props) {
       title: "Painel",
       items: [
         { key: "overview", label: "Visão geral", icon: LayoutGrid, href: "/dashboard" },
+        { key: "edit", label: "Editar Perfil", icon: Pencil, href: "/dashboard/edit" },
         { key: "comunidade", label: "Comunidade", icon: Users, href: "/dashboard/comunidade" },
       ],
     },

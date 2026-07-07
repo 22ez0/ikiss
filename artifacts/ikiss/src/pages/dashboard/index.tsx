@@ -175,7 +175,7 @@ export default function Dashboard() {
         </div>
         <Link
           href="/dashboard/edit"
-          className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-white/90 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-white/90 transition-colors"
           data-testid="link-edit-profile"
         >
           <Pencil className="w-3.5 h-3.5" />
