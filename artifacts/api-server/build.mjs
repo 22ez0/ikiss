@@ -57,30 +57,6 @@ async function buildAll() {
     ],
   });
 
-  // Build 2: Vercel serverless handler — usa vercel-entry.ts (wrapper de diagnóstico)
-  await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/vercel-entry.ts")],
-    platform: "node",
-    bundle: true,
-    format: "esm",
-    outfile: path.resolve(artifactDir, "api/handler.mjs"),
-    logLevel: "info",
-    external: EXTERNALS,
-    sourcemap: false,
-    banner: BANNER,
-  });
-
-  // Build 3: Ultra-minimal bot handler diagnostic (no external deps)
-  await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/bot-standalone.ts")],
-    platform: "node",
-    bundle: true,
-    format: "cjs",
-    outfile: path.resolve(artifactDir, "api/bot-handler.js"),
-    logLevel: "info",
-    external: EXTERNALS,
-    sourcemap: false,
-  });
 
 }
 

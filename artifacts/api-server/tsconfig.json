@@ -8,6 +8,5 @@
     "noImplicitThis": false,
     "noImplicitReturns": false
   },
-  "include": [],
-  "files": []
+  "include": ["src/**/*"]
 }
