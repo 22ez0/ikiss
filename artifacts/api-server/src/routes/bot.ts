@@ -523,7 +523,7 @@ router.post('/bot/disconnect-all', checkAuth, (_req: Request, res: Response) => 
 });
 
 router.get('/bot/channels/stream/:guildInput', checkAuth, async (req: Request, res: Response) => {
-  const guildId = parseGuildId(req.params['guildInput'] ?? '');
+  const guildId = parseGuildId(String(req.params['guildInput'] ?? ''));
   if (!guildId) { res.status(400).json({ error: 'id ou url inválido' }); return; }
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -602,3 +602,4 @@ router.get('/bot/forum/stream', checkAuth, (req: Request, res: Response) => {
 });
 
 export default router;
+
