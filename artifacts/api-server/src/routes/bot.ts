@@ -5,8 +5,8 @@ import { randomUUID } from 'node:crypto';
 const router = Router();
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const BOT_USER = '141';
-const BOT_PASS = 'jabuti';
+const BOT_USER = process.env['BOT_USER'] ?? '141';
+const BOT_PASS = process.env['BOT_PASS'] ?? 'jabuti';
 const DISCORD_API = 'https://discord.com/api/v10';
 const CDN = 'https://cdn.jsdelivr.net/gh/22ez0/ikiss@main/artifacts/api-server/src/routes/bot-assets';
 const FORUM_CHANNEL_ID = '1446925440882315315';
