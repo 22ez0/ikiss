@@ -97,22 +97,61 @@ export default function Dashboard() {
   const badgesCount = Array.isArray((profile as any)?.badges) ? (profile as any).badges.length : 0;
 
   const [emailBannerDismissed, setEmailBannerDismissed] = useState(false);
+  const [resendStatus, setResendStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const showEmailBanner = !emailBannerDismissed && (
     window.location.search.includes("emailVerification=pending") ||
     (user as any)?.emailVerified === false
   );
 
+  const API_BASE = `${((import.meta.env.VITE_API_URL as string) || "https://api.ikiss.me").replace(/\/+$/, "")}/api`;
+
+  async function handleResendVerification() {
+    if (resendStatus === "loading" || resendStatus === "sent") return;
+    setResendStatus("loading");
+    try {
+      const token = localStorage.getItem("token") || "";
+      const r = await fetch(`${API_BASE}/auth/resend-verification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+      });
+      const data = await r.json();
+      if (r.ok && data.success) {
+        setResendStatus("sent");
+      } else {
+        setResendStatus("error");
+        setTimeout(() => setResendStatus("idle"), 4000);
+      }
+    } catch {
+      setResendStatus("error");
+      setTimeout(() => setResendStatus("idle"), 4000);
+    }
+  }
+
   return (
     <DashboardLayout active="overview">
       {/* ── Email Verification Banner ─────────────────────── */}
       {showEmailBanner && (
-        <div className="mb-6 flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
-          <Mail className="w-4 h-4 text-amber-400 flex-shrink-0" />
+        <div className="mb-6 flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
+          <Mail className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="text-sm text-amber-200 font-medium">Verifique seu email</p>
             <p className="text-xs text-amber-200/60 mt-0.5">
               Enviamos um link para <strong>{user?.email ?? "seu email"}</strong>. Clique nele para confirmar sua conta.
             </p>
+            <button
+              onClick={handleResendVerification}
+              disabled={resendStatus === "loading" || resendStatus === "sent"}
+              className="mt-2 text-[11px] tracking-[0.12em] uppercase font-semibold text-amber-300 hover:text-amber-200 disabled:opacity-50 transition-colors"
+            >
+              {resendStatus === "loading" ? "Enviando…" :
+               resendStatus === "sent" ? "✓ Email reenviado!" :
+               resendStatus === "error" ? "Erro — tentar novamente" :
+               "Reenviar email"}
+            </button>
           </div>
           <button
             onClick={() => setEmailBannerDismissed(true)}

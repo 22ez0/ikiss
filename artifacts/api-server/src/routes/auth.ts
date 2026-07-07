@@ -317,6 +317,36 @@ router.post("/auth/reset-password", async (req, res): Promise<void> => {
   res.json({ success: true, message: "Senha redefinida" });
 });
 
+router.post("/auth/resend-verification", requireAuth, async (req, res): Promise<void> => {
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, req.user!.userId))
+    .limit(1);
+
+  if (!user) {
+    res.status(404).json({ error: "Usuário não encontrado" });
+    return;
+  }
+  if (user.emailVerified) {
+    res.status(400).json({ error: "Email já verificado" });
+    return;
+  }
+
+  const token = newToken();
+  await db.update(usersTable).set({
+    verificationTokenHash: hashToken(token),
+    verificationTokenExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+  }).where(eq(usersTable.id, user.id));
+
+  const ok = await sendVerificationEmail(user.email, token);
+  if (!ok) {
+    res.status(500).json({ error: "Falha ao enviar email. Tente novamente mais tarde." });
+    return;
+  }
+  res.json({ success: true, message: "Email de verificação reenviado" });
+});
+
 router.post("/auth/logout", (_req, res): void => {
   res.json({ success: true, message: "Logged out" });
 });
