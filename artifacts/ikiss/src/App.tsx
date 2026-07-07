@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -33,6 +33,26 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Handles SPA reload on GitHub Pages / static hosts.
+ * 404.html saves the original path in sessionStorage ("ikiss:redirect")
+ * and redirects to "/". This component reads it back and navigates
+ * to the correct route immediately on mount — before the user sees anything.
+ */
+function SpaRedirectHandler() {
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem("ikiss:redirect");
+    if (!stored || stored === "/") return;
+    sessionStorage.removeItem("ikiss:redirect");
+    // Replace current history entry so the back button doesn't loop
+    setLocation(stored, { replace: true });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -57,6 +77,7 @@ function Router() {
 }
 
 function App() {
+  // Keep Render warm — ping every 4 min when tab is visible
   useEffect(() => {
     const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
     if (!apiUrl) return;
@@ -81,6 +102,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <SpaRedirectHandler />
           <AuthProvider>
             <SiteBackground />
             <Router />
