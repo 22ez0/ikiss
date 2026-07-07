@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Faren"
+title = "Ikiss"
 version = "1.0.0"
 id = "artifacts/faren"
 router = "path"
@@ -15,11 +15,11 @@ paths = [ "/" ]
 localPort = 21395
 
 [services.development]
-run = "pnpm --filter @workspace/faren run dev"
+run = "pnpm --filter @workspace/ikiss run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/faren", "run", "build" ]
-publicDir = "artifacts/faren/dist/public"
+build = [ "pnpm", "--filter", "@workspace/ikiss", "run", "build" ]
+publicDir = "artifacts/ikiss/dist/public"
 serve = "static"
 
 [[services.production.rewrites]]
