@@ -72,6 +72,21 @@ Mesmos valores acima marcados com `sync: false` no render.yaml.
 - **API principal: Render** (`ikiss-api.onrender.com`). Tentativa de migrar para Vercel foi abandonada — Render é o serviço definitivo.
 - Documentar todas as decisões aqui para que outro agente Replit saiba o que fazer
 
+### Mudanças feitas em 2026-07-07 (renomeação faren→ikiss + fix tela preta)
+
+1. **Diretório renomeado**: `artifacts/faren/` → `artifacts/ikiss/` (git rename completo, histórico preservado)
+2. **Package name**: `@workspace/faren` → `@workspace/ikiss` em `artifacts/ikiss/package.json`
+3. **FarenGlyph → IkissGlyph**: componente SVG renomeado em `VisualOptionCard.tsx` e `DashboardLayout.tsx`
+4. **Fix tela preta no dashboard**: `artifacts/ikiss/src/pages/dashboard/index.tsx` — quando `authLoading=true` agora renderiza spinner em vez de `return null`
+5. **Fix /api/auth/me**: `artifacts/api-server/src/routes/auth.ts` agora retorna `emailVerified` no JSON, necessário para o banner de verificação funcionar
+6. **Email FROM**: `suporte@ikiss.me` (era `no-reply@ikiss.me`) — em `artifacts/api-server/src/lib/email.ts` e `start-local.sh`
+7. **Deploy frontend**: `.github/workflows/deploy-frontend.yml` atualizado para `@workspace/ikiss` e `artifacts/ikiss/dist/public`
+8. **app.ts**: caminho do frontend estático atualizado para `artifacts/ikiss/dist/public`
+9. **Workflow Replit**: `ikiss: web` configurado na porta 3000 (substituiu `artifacts/faren: web`)
+10. **Push para GitHub**: commit `d96aac3` em `main` — deploy automático do frontend via GitHub Actions ativado
+
+**Nota técnica**: O tipo `User` gerado pelo cliente (`lib/api-client-react`) ainda não reflete `emailVerified`. Funciona em runtime via cast `any`, mas precisa de regeneração de spec para tipagem correta.
+
 ### Migração Render → Vercel (2026-07-06)
 
 **Problema original**: API em `api.ikiss.me` estava apontando para o Render (suspenso/instável), causando:
