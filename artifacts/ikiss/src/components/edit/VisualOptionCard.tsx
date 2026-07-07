@@ -79,7 +79,7 @@ export function VisualOptionCard({
         className="relative w-full overflow-hidden bg-gradient-to-br from-zinc-900 via-black to-zinc-950 border-b border-white/5"
         style={{ aspectRatio: previewAspect }}
       >
-        {/* faren glow accent — recurrent identity element */}
+        {/* ikiss glow accent — recurrent identity element */}
         <div
           className="pointer-events-none absolute inset-0 opacity-40 mix-blend-overlay"
           style={{
@@ -361,7 +361,7 @@ export function SliderCard({
  * Ikiss signature glyph — recurring identity element used as a brand mark.
  * A six-pointed star in pure SVG, animated with a subtle pulse.
  */
-export function FarenGlyph({
+export function IkissGlyph({
   size = 16,
   className,
 }: {

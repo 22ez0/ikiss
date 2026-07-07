@@ -31,7 +31,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build frontend
-        run: pnpm --filter @workspace/faren run build
+        run: pnpm --filter @workspace/ikiss run build
         env:
           BASE_PATH: /
           PORT: 5173
@@ -43,7 +43,7 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: artifacts/faren/dist/public
+          publish_dir: artifacts/ikiss/dist/public
           cname: ikiss.me
           force_orphan: true
 

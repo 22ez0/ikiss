@@ -3,7 +3,7 @@ import { logger } from "./logger";
 const RESEND_API = "https://api.resend.com/emails";
 
 const APP_URL = (process.env.APP_URL || "https://ikiss.me").replace(/\/+$/, "");
-const FROM = process.env.EMAIL_FROM || "Ikiss <no-reply@ikiss.me>";
+const FROM = process.env.EMAIL_FROM || "Ikiss <suporte@ikiss.me>";
 
 type SendArgs = { to: string; subject: string; html: string; text: string };
 

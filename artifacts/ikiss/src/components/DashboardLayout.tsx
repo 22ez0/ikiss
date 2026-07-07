@@ -15,7 +15,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { FarenGlyph } from "@/components/edit/VisualOptionCard";
+import { IkissGlyph } from "@/components/edit/VisualOptionCard";
 
 type Item = {
   label: string;
@@ -108,7 +108,7 @@ export function DashboardLayout({ children, active = "overview" }: Props) {
       >
         {/* Brand */}
         <Link href="/" className="px-5 h-14 border-b border-white/10 flex items-center gap-2.5">
-          <FarenGlyph size={14} className="text-white" />
+          <IkissGlyph size={14} className="text-white" />
           <span className="text-sm font-bold tracking-[0.28em] uppercase text-white">IKISS</span>
         </Link>
 

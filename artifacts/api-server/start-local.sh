@@ -19,7 +19,7 @@ export CORS_ALLOWED_ORIGINS="https://ikiss.me,https://www.ikiss.me"
 export RATE_LIMIT_WINDOW_MS="60000"
 export RATE_LIMIT_MAX="300"
 export ENABLE_BOT_BLOCKING="false"
-export EMAIL_FROM="Ikiss <no-reply@ikiss.me>"
+export EMAIL_FROM="Ikiss <suporte@ikiss.me>"
 
 # Validar que DATABASE_URL está disponível
 if [ -z "$DATABASE_URL" ]; then

@@ -20,6 +20,10 @@ author = "agent"
 task = "workflow.run"
 args = "API Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "ikiss: web"
+
 [[workflows.workflow]]
 name = "API Server"
 author = "agent"
@@ -31,6 +35,18 @@ outputType = "console"
 task = "shell.exec"
 args = "PORT=8000 bash artifacts/api-server/start-local.sh"
 waitForPort = 8000
+
+[[workflows.workflow]]
+name = "ikiss: web"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/ikiss run dev"
+waitForPort = 3000
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 stack = "BEST_EFFORT_FALLBACK"

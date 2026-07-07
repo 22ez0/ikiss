@@ -110,7 +110,7 @@ app.use(express.urlencoded({ extended: true, limit: "75mb" }));
 app.use("/api", router);
 app.use("/", ogRouter);
 
-const frontendDist = path.resolve(process.cwd(), "artifacts/faren/dist/public");
+const frontendDist = path.resolve(process.cwd(), "artifacts/ikiss/dist/public");
 if (existsSync(frontendDist)) {
   app.use(express.static(frontendDist, { maxAge: "1h", etag: true }));
   app.get("*", (_req, res, next) => {

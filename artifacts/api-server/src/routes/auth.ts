@@ -339,6 +339,7 @@ router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
     username: user.username,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
+    emailVerified: user.emailVerified,
     createdAt: user.createdAt.toISOString(),
   });
 });
