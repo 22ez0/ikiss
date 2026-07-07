@@ -71,17 +71,16 @@ async function buildAll() {
     banner: BANNER,
   });
 
-  // Build 3: Standalone bot panel handler (no DB, no auth dependency)
+  // Build 3: Standalone bot panel handler — CJS for reliable Vercel compat
   await esbuild({
     entryPoints: [path.resolve(artifactDir, "src/bot-standalone.ts")],
     platform: "node",
     bundle: true,
-    format: "esm",
-    outfile: path.resolve(artifactDir, "api/bot-handler.mjs"),
+    format: "cjs",
+    outfile: path.resolve(artifactDir, "api/bot-handler.js"),
     logLevel: "info",
     external: EXTERNALS,
     sourcemap: false,
-    banner: BANNER,
   });
 
 }
