@@ -71,7 +71,7 @@ async function buildAll() {
     banner: BANNER,
   });
 
-  // Build 3: Standalone bot panel handler — CJS for reliable Vercel compat
+  // Build 3: Ultra-minimal bot handler diagnostic (no external deps)
   await esbuild({
     entryPoints: [path.resolve(artifactDir, "src/bot-standalone.ts")],
     platform: "node",
