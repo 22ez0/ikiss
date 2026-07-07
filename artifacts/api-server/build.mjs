@@ -57,10 +57,9 @@ async function buildAll() {
     ],
   });
 
-  // Build 2: Vercel serverless handler — usa src/app.ts diretamente
-  // (api/index.ts foi removido para não ativar o compilador TypeScript do Vercel)
+  // Build 2: Vercel serverless handler — usa vercel-entry.ts (wrapper de diagnóstico)
   await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/app.ts")],
+    entryPoints: [path.resolve(artifactDir, "src/vercel-entry.ts")],
     platform: "node",
     bundle: true,
     format: "esm",
