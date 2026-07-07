@@ -12,11 +12,11 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 |---|---|---|
 | Frontend | GitHub Pages | ikiss.me via CNAME Cloudflare |
 | CDN / DNS / Cache | Cloudflare | Worker edge-proxy, R2 mídia, Turnstile, cache purge |
-| API (principal) | Render | Express 5, auto-deploy via render.yaml |
+| API (principal) | **Render** (`ikiss-api`) | Express 5, auto-deploy via GitHub → Render (`srv-d96caedckfvc73f9bht0`) |
 | API (failover) | Hostinger VPS | Docker + nginx, deploy via SSH (.github/workflows/deploy-vps.yml) |
 | Media storage | Cloudflare R2 | Avatars, banners, backgrounds, músicas |
 | Banco de dados | Neon PostgreSQL | Pooled connection string em DATABASE_URL |
-| Discord bot | Render | Serviço separado (faren-discord-bot) |
+| Discord bot | **Render** (`ikiss-discord-bot`) | Serviço separado (`srv-d96cak9o3t8c73b568g0`) |
 
 ### Performance para 10.000 perfis
 
@@ -69,7 +69,7 @@ Mesmos valores acima marcados com `sync: false` no render.yaml.
 
 ### User Preferences
 - Falar **somente em português** em todas as respostas
-- **API principal: Vercel** (substituindo Render como primário). Render permanece como segunda opção para o futuro.
+- **API principal: Render** (`ikiss-api.onrender.com`). Tentativa de migrar para Vercel foi abandonada — Render é o serviço definitivo.
 - Documentar todas as decisões aqui para que outro agente Replit saiba o que fazer
 
 ### Migração Render → Vercel (2026-07-06)
