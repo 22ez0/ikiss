@@ -19,7 +19,9 @@ export function ProfileCardMedia({
   fallbackGradient = "linear-gradient(135deg, #1a1a2e, #16213e)",
   className = "",
 }: ProfileCardMediaProps) {
-  const computedOpacity = url ? (opacity ?? 60) / 100 : 1;
+  // Normalize: legacy DB values > 1 are percent (0–100); canonical values are 0–1 float.
+  const rawOpacity = opacity ?? 0.6;
+  const computedOpacity = url ? (rawOpacity > 1 ? rawOpacity / 100 : rawOpacity) : 1;
 
   if (url && isVideoUrl(url)) {
     return (

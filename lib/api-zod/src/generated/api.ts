@@ -86,6 +86,9 @@ export const GetUserByUsernameResponse = zod.object({
   nameBorderOpacity: zod.number().nullish(),
   cursorStyle: zod.string().nullish(),
   musicUrl: zod.string().nullish(),
+  musicTitle: zod.string().nullish(),
+  musicIconUrl: zod.string().nullish(),
+  musicPrivate: zod.boolean().nullish(),
   badges: zod.array(zod.string()),
   particleEffect: zod.string().nullish(),
   clickEffect: zod.string().nullish(),
@@ -96,6 +99,8 @@ export const GetUserByUsernameResponse = zod.object({
   showViews: zod.boolean().nullish(),
   backgroundBlur: zod.number().nullish(),
   backgroundType: zod.string().nullish(),
+  showDiscordAvatar: zod.boolean().nullish(),
+  showDiscordPresence: zod.boolean().nullish(),
   links: zod.array(
     zod.object({
       id: zod.number(),
@@ -510,6 +515,9 @@ export const GetTrendingProfilesResponseItem = zod.object({
   nameBorderOpacity: zod.number().nullish(),
   cursorStyle: zod.string().nullish(),
   musicUrl: zod.string().nullish(),
+  musicTitle: zod.string().nullish(),
+  musicIconUrl: zod.string().nullish(),
+  musicPrivate: zod.boolean().nullish(),
   badges: zod.array(zod.string()),
   particleEffect: zod.string().nullish(),
   clickEffect: zod.string().nullish(),
@@ -520,6 +528,8 @@ export const GetTrendingProfilesResponseItem = zod.object({
   showViews: zod.boolean().nullish(),
   backgroundBlur: zod.number().nullish(),
   backgroundType: zod.string().nullish(),
+  showDiscordAvatar: zod.boolean().nullish(),
+  showDiscordPresence: zod.boolean().nullish(),
   links: zod.array(
     zod.object({
       id: zod.number(),
