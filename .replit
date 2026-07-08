@@ -22,7 +22,7 @@ args = "API Server"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "ikiss: web"
+args = "artifacts/ikiss: web"
 
 [[workflows.workflow]]
 name = "API Server"
@@ -42,8 +42,8 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pnpm --filter @workspace/ikiss run dev"
-waitForPort = 3000
+args = "PORT=21395 pnpm --filter @workspace/ikiss run dev"
+waitForPort = 21395
 
 [workflows.workflow.metadata]
 outputType = "console"
@@ -91,12 +91,8 @@ externalPort = 3001
 [nix]
 channel = "stable-25_05"
 
-[userenv]
-
 [userenv.development]
 ADMIN_LOGIN = "keefaren"
-ADMIN_PASSWORD = "Hungria2021@"
-ADMIN_SECRET = "dev-admin-faren-replit-u3i7lafpx3ro6hjv5i4jpr"
 ENABLE_BOT_BLOCKING = "false"
 NODE_ENV = "development"
 BASE_PATH = "/"
@@ -117,4 +113,3 @@ GITHUB_OWNER = "22ez0"
 GITHUB_REPO = "ikiss"
 VITE_TURNSTILE_SITE_KEY = "0x4AAAAAADCou66RkKmd1DwX"
 CACHE_RULESET_ID = "92b59739dd254ee8813db04ed79f6e0d"
-RENDER_API_KEY = "rnd_6RlXDLfsgPxF8QbzAl4VvginF9yF"

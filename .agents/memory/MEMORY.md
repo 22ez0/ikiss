@@ -2,3 +2,4 @@
 - [SiteBackground audio remount](site-bg-audio.md) — ao retornar de rotas de perfil, re-aplicar audio.muted explicitamente antes de play()
 - [Vercel API key limitada](vercel-api-key.md) — VERCEL_API_KEY só tem leitura; não cria projetos via REST API; VERCEL_TOKEN no GitHub também não funciona com CLI; projeto Vercel precisa ser criado manualmente no dashboard
 - [API fallback URL frontend](api-fallback.md) — home.tsx e register.tsx precisam de fallback explícito para https://api.ikiss.me quando VITE_API_URL não está definido; string vazia causa URL relativa que falha no GitHub Pages
+- [Ikiss dev setup](ikiss-dev-setup.md) — API local porta 8000 obrigatória; sem ela uploads R2 vão para Render suspenso

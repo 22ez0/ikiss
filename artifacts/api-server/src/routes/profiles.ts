@@ -8,7 +8,7 @@ import { requireAuth, optionalAuth } from "../lib/auth";
 import { fetchLastfmNowPlaying } from "./music";
 import { parseDataUri, uploadBuffer, ALLOWED_UPLOAD_MIMES } from "../lib/r2";
 
-const UPLOAD_PREFIXES = new Set(["avatars", "banners", "backgrounds", "music", "icons"]);
+const UPLOAD_PREFIXES = new Set(["avatars", "banners", "backgrounds", "music", "icons", "stories", "publications", "gallery"]);
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 async function maybeUploadDataUri(value: string | undefined, prefix: string): Promise<string | undefined> {
