@@ -16,6 +16,7 @@ import discordRouter from "./discord";
 import emailRouter from "./email";
 import emailsnoahRouter from "./emailsnoah";
 import botRouter from "./bot";
+import cdnRouter from "./cdn";
 
 const router: IRouter = Router();
 
@@ -37,6 +38,8 @@ router.use(emailsnoahRouter);
 // botRouter must be before ogRouter: the OG catch-all GET /:username would
 // otherwise intercept /api/bot and redirect it to ikiss.me/bot.
 router.use(botRouter);
+// CDN proxy: serve R2 files without public bucket access
+router.use(cdnRouter);
 router.use(ogRouter);
 
 export default router;

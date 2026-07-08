@@ -12,8 +12,8 @@ export PORT="${PORT:-8000}"
 
 # Valores fixos (não-secretos)
 export R2_ACCOUNT_ID="5a9a17dc69ada45f32c4aa36d4e8fdd9"
-export R2_BUCKET="faren-media"
-export R2_PUBLIC_URL="https://pub-49759bd8e09c4e0b89e475d23d273d2f.r2.dev"
+export R2_BUCKET="ikiss-media"
+export R2_PUBLIC_URL="https://api.ikiss.me/api/cdn"
 export APP_URL="https://ikiss.me"
 export CORS_ALLOWED_ORIGINS="https://ikiss.me,https://www.ikiss.me"
 export RATE_LIMIT_WINDOW_MS="60000"

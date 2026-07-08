@@ -76,9 +76,9 @@ services:
       - key: R2_ACCOUNT_ID
         value: 5a9a17dc69ada45f32c4aa36d4e8fdd9
       - key: R2_BUCKET
-        value: faren-media
+        value: ikiss-media
       - key: R2_PUBLIC_URL
-        value: https://pub-49759bd8e09c4e0b89e475d23d273d2f.r2.dev
+        value: https://api.ikiss.me/api/cdn
       - key: R2_ACCESS_KEY_ID
         sync: false
       - key: R2_SECRET_ACCESS_KEY
