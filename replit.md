@@ -59,7 +59,18 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 **No Render (Service → Environment):**
 Mesmos valores acima marcados com `sync: false` no render.yaml.
 
-### Mudanças feitas nesta sessão de migração
+### Como rodar no Replit (ambiente de desenvolvimento)
+
+1. **Dependências**: `pnpm install` (já executado)
+2. **Build da API**: `pnpm --filter @workspace/api-server run build` (cria `artifacts/api-server/dist/index.mjs`)
+3. **Workflows ativos**:
+   - `API Server` → `PORT=8000 bash artifacts/api-server/start-local.sh` (porta 8000, banco Neon)
+   - `artifacts/ikiss: web` → `pnpm --filter @workspace/ikiss run dev` (porta 21395, proxy `/api` → `localhost:8000`)
+4. **Secrets necessários no Replit** (todos já configurados): `NEON_DATABASE_URL`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `SESSION_SECRET`, `TURNSTILE_SECRET_KEY`, `RESEND_API_KEY`, `DISCORD_BOT_TOKEN`, `EMAIL_WEBHOOK_SECRET`, `RENDER_API_KEY`, `GITHUB_PERSONAL_ACCESS_TOKEN`, `CLOUDFLARE_PURGE_TOKEN`
+5. **R2**: bucket `faren-media` (nome no Cloudflare — não alterar), CDN `https://pub-49759bd8e09c4e0b89e475d23d273d2f.r2.dev`
+6. **CORS**: em `NODE_ENV=development`, CORS está aberto para todas as origens (o Replit dev funciona sem configuração adicional)
+
+### Mudanças feitas em sessão anterior
 
 1. `pnpm install` executado — dependências instaladas no ambiente Replit
 2. `drizzle-kit push` executado — schema do banco aplicado no PostgreSQL do Replit
