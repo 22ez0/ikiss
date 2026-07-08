@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { r2, R2_BUCKET } from "../lib/r2";
-import { Readable } from "node:stream";
+import { Readable, pipeline } from "node:stream";
+import { promisify } from "node:util";
 
 const router = Router();
+const pipelineAsync = promisify(pipeline);
 
 /**
  * GET /cdn/<key>
@@ -46,19 +48,28 @@ router.use("/cdn", async (req, res, next): Promise<void> => {
       return;
     }
 
-    // Stream the body
     const body = obj.Body;
-    if (body && typeof (body as any).pipe === "function") {
-      (body as unknown as Readable).pipe(res);
-    } else if (body) {
-      // AWS SDK v3 returns an async iterable in some environments
-      const chunks: Buffer[] = [];
-      for await (const chunk of body as any) {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-      }
-      res.end(Buffer.concat(chunks));
-    } else {
+    if (!body) {
       res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    // AWS SDK v3 body is always an async-iterable (SdkStreamMixin).
+    // Convert to a Node.js Readable so we can use stream.pipeline(),
+    // which handles backpressure, cleanup, and error propagation correctly.
+    const readable = body instanceof Readable
+      ? body
+      : Readable.from(body as AsyncIterable<Uint8Array>);
+
+    try {
+      await pipelineAsync(readable, res);
+    } catch (pipeErr: any) {
+      // If headers are already sent (stream started), we can't send an error
+      // response — just destroy the streams and log.
+      if (!res.headersSent) {
+        res.status(502).json({ error: "Stream error" });
+      }
+      console.error("[cdn] Stream error:", pipeErr?.message);
     }
   } catch (err: any) {
     const status = err?.$metadata?.httpStatusCode;
@@ -66,7 +77,9 @@ router.use("/cdn", async (req, res, next): Promise<void> => {
       res.status(404).json({ error: "Not found" });
     } else {
       console.error("[cdn] R2 error:", err?.message);
-      res.status(502).json({ error: "Failed to fetch file" });
+      if (!res.headersSent) {
+        res.status(502).json({ error: "Failed to fetch file" });
+      }
     }
   }
 });
