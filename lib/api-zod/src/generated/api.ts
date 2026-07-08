@@ -190,6 +190,9 @@ export const GetMyProfileResponse = zod.object({
   nameBorderOpacity: zod.number().nullish(),
   cursorStyle: zod.string().nullish(),
   musicUrl: zod.string().nullish(),
+  musicTitle: zod.string().nullish(),
+  musicIconUrl: zod.string().nullish(),
+  musicPrivate: zod.boolean().nullish(),
   badges: zod.array(zod.string()),
   particleEffect: zod.string().nullish(),
   clickEffect: zod.string().nullish(),
@@ -200,6 +203,8 @@ export const GetMyProfileResponse = zod.object({
   showViews: zod.boolean().nullish(),
   backgroundBlur: zod.number().nullish(),
   backgroundType: zod.string().nullish(),
+  showDiscordAvatar: zod.boolean().nullish(),
+  showDiscordPresence: zod.boolean().nullish(),
   links: zod.array(
     zod.object({
       id: zod.number(),
@@ -249,6 +254,11 @@ export const UpdateProfileBody = zod.object({
   typewriterTexts: zod.array(zod.string()).optional(),
   profileTitle: zod.string().nullish(),
   showViews: zod.boolean().nullish(),
+  musicTitle: zod.string().nullish(),
+  musicIconUrl: zod.string().nullish(),
+  musicPrivate: zod.boolean().nullish(),
+  showDiscordAvatar: zod.boolean().nullish(),
+  showDiscordPresence: zod.boolean().nullish(),
 });
 
 export const UpdateProfileResponse = zod.object({
@@ -266,6 +276,9 @@ export const UpdateProfileResponse = zod.object({
   nameBorderOpacity: zod.number().nullish(),
   cursorStyle: zod.string().nullish(),
   musicUrl: zod.string().nullish(),
+  musicTitle: zod.string().nullish(),
+  musicIconUrl: zod.string().nullish(),
+  musicPrivate: zod.boolean().nullish(),
   badges: zod.array(zod.string()),
   particleEffect: zod.string().nullish(),
   clickEffect: zod.string().nullish(),
@@ -276,6 +289,8 @@ export const UpdateProfileResponse = zod.object({
   showViews: zod.boolean().nullish(),
   backgroundBlur: zod.number().nullish(),
   backgroundType: zod.string().nullish(),
+  showDiscordAvatar: zod.boolean().nullish(),
+  showDiscordPresence: zod.boolean().nullish(),
   links: zod.array(
     zod.object({
       id: zod.number(),

@@ -1388,7 +1388,12 @@ export default function EditProfile() {
     const otherBadges = form.badges.filter((b: string) => !verifiedTypes.includes(b)).slice(0, 6);
     const preservedBadges = currentVerifiedBadge ? [...otherBadges, currentVerifiedBadge] : otherBadges;
     try {
-      await updateProfile.mutateAsync({ data: { ...form, badges: preservedBadges } as any });
+      await updateProfile.mutateAsync({ data: {
+        ...form,
+        badges: preservedBadges,
+        backgroundOpacity: form.backgroundOpacity / 100,
+        nameBorderOpacity: form.nameBorderOpacity / 100,
+      } as any });
       toast({ title: "Perfil salvo!", duration: 2000 });
       setIsDirty(false);
       formHydratedRef.current = false;

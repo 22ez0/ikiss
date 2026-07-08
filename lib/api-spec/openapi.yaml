@@ -576,6 +576,12 @@ components:
           type: ["string", "null"]
         musicUrl:
           type: ["string", "null"]
+        musicTitle:
+          type: ["string", "null"]
+        musicIconUrl:
+          type: ["string", "null"]
+        musicPrivate:
+          type: ["boolean", "null"]
         badges:
           type: array
           items:
@@ -600,6 +606,10 @@ components:
           type: ["number", "null"]
         backgroundType:
           type: ["string", "null"]
+        showDiscordAvatar:
+          type: ["boolean", "null"]
+        showDiscordPresence:
+          type: ["boolean", "null"]
         links:
           type: array
           items:
@@ -848,6 +858,16 @@ components:
         profileTitle:
           type: ["string", "null"]
         showViews:
+          type: ["boolean", "null"]
+        musicTitle:
+          type: ["string", "null"]
+        musicIconUrl:
+          type: ["string", "null"]
+        musicPrivate:
+          type: ["boolean", "null"]
+        showDiscordAvatar:
+          type: ["boolean", "null"]
+        showDiscordPresence:
           type: ["boolean", "null"]
 
     ConnectDiscordBody:

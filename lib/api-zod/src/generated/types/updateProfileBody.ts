@@ -47,4 +47,14 @@ export interface UpdateProfileBody {
   profileTitle?: string | null;
   /** @nullable */
   showViews?: boolean | null;
+  /** @nullable */
+  musicTitle?: string | null;
+  /** @nullable */
+  musicIconUrl?: string | null;
+  /** @nullable */
+  musicPrivate?: boolean | null;
+  /** @nullable */
+  showDiscordAvatar?: boolean | null;
+  /** @nullable */
+  showDiscordPresence?: boolean | null;
 }

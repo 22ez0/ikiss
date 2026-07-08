@@ -82,6 +82,12 @@ export interface Profile {
   cursorStyle?: string | null;
   /** @nullable */
   musicUrl?: string | null;
+  /** @nullable */
+  musicTitle?: string | null;
+  /** @nullable */
+  musicIconUrl?: string | null;
+  /** @nullable */
+  musicPrivate?: boolean | null;
   badges: string[];
   /** @nullable */
   particleEffect?: string | null;
@@ -100,6 +106,10 @@ export interface Profile {
   backgroundBlur?: number | null;
   /** @nullable */
   backgroundType?: string | null;
+  /** @nullable */
+  showDiscordAvatar?: boolean | null;
+  /** @nullable */
+  showDiscordPresence?: boolean | null;
   links: ProfileLink[];
   discordConnected: boolean;
   /** @nullable */
@@ -267,6 +277,16 @@ export interface UpdateProfileBody {
   profileTitle?: string | null;
   /** @nullable */
   showViews?: boolean | null;
+  /** @nullable */
+  musicTitle?: string | null;
+  /** @nullable */
+  musicIconUrl?: string | null;
+  /** @nullable */
+  musicPrivate?: boolean | null;
+  /** @nullable */
+  showDiscordAvatar?: boolean | null;
+  /** @nullable */
+  showDiscordPresence?: boolean | null;
 }
 
 export interface ConnectDiscordBody {
