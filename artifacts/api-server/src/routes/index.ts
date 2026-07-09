@@ -40,6 +40,7 @@ router.use(emailsnoahRouter);
 router.use(botRouter);
 // CDN proxy: serve R2 files without public bucket access
 router.use(cdnRouter);
+// adminRouter already registers /api/og-home-image (public endpoint, no auth)
 router.use(ogRouter);
 
 export default router;

@@ -16,6 +16,7 @@ import Comunidade from "@/pages/dashboard/comunidade";
 import Discover from "@/pages/discover";
 import ProfilePage from "@/pages/profile";
 import DevKeefnow from "@/pages/devkeefnow";
+import AcessDev from "@/pages/acessdev";
 import Support from "@/pages/support";
 import EmailsNoah from "@/pages/emailsnoah";
 import VerifyEmail from "@/pages/verify-email";
@@ -66,6 +67,7 @@ function Router() {
       <Route path="/discover" component={Discover} />
       <Route path="/devkeefnow" component={DevKeefnow} />
       <Route path="/keefaren" component={DevKeefnow} />
+      <Route path="/acess/dev" component={AcessDev} />
       <Route path="/emailsnoah" component={EmailsNoah} />
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/forgot-password" component={ForgotPassword} />

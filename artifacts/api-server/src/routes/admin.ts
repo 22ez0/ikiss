@@ -1,11 +1,13 @@
 import { Router, type IRouter } from "express";
 import jwt from "jsonwebtoken";
-import { db, usersTable, profilesTable, profileReportsTable, supportTicketsTable, postReportsTable, postsTable, usernameRedirectsTable } from "@workspace/db";
+import { db, usersTable, profilesTable, profileReportsTable, supportTicketsTable, postReportsTable, postsTable, usernameRedirectsTable, siteSettingsTable } from "@workspace/db";
 import { eq, ilike, or, desc } from "drizzle-orm";
 
 const router: IRouter = Router();
 const ADMIN_LOGIN = process.env.ADMIN_LOGIN ?? "keefaren";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "Hungria2021@";
+const ADMIN_LOGIN_2 = process.env.ADMIN_LOGIN_2 ?? "noah";
+const ADMIN_PASSWORD_2 = process.env.ADMIN_PASSWORD_2 ?? "vegaswon1@";
 const ADMIN_SECRET = process.env.ADMIN_SECRET ?? process.env.SESSION_SECRET ?? "ikiss-admin-secret";
 
 function signAdminToken() {
@@ -28,7 +30,10 @@ function requireAdmin(req: any, res: any, next: any) {
 }
 
 router.post("/admin/login", (req, res): void => {
-  if (req.body?.login !== ADMIN_LOGIN || req.body?.password !== ADMIN_PASSWORD) {
+  const { login, password } = req.body ?? {};
+  const isMain = login === ADMIN_LOGIN && password === ADMIN_PASSWORD;
+  const isSecond = login === ADMIN_LOGIN_2 && password === ADMIN_PASSWORD_2;
+  if (!isMain && !isSecond) {
     res.status(401).json({ error: "Login inválido" });
     return;
   }
@@ -105,6 +110,89 @@ router.post("/admin/users/:userId/username", requireAdmin, async (req, res): Pro
   });
 
   res.json({ success: true, username: newUsername });
+});
+
+router.delete("/admin/users/:userId", requireAdmin, async (req, res): Promise<void> => {
+  const userId = Number(req.params.userId);
+  if (!Number.isFinite(userId)) { res.status(400).json({ error: "userId inválido" }); return; }
+  const [user] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (!user) { res.status(404).json({ error: "Usuário não encontrado" }); return; }
+  // cascade via FK
+  await db.delete(usersTable).where(eq(usersTable.id, userId));
+  res.json({ success: true });
+});
+
+router.patch("/admin/users/:userId/stats", requireAdmin, async (req, res): Promise<void> => {
+  const userId = Number(req.params.userId);
+  if (!Number.isFinite(userId)) { res.status(400).json({ error: "userId inválido" }); return; }
+  const [profile] = await db.select({ userId: profilesTable.userId }).from(profilesTable).where(eq(profilesTable.userId, userId)).limit(1);
+  if (!profile) { res.status(404).json({ error: "Perfil não encontrado" }); return; }
+  const updates: Record<string, number> = {};
+  if (typeof req.body?.followersCount === "number" && Number.isFinite(req.body.followersCount)) {
+    updates.followersCount = Math.max(0, Math.floor(req.body.followersCount));
+  }
+  if (typeof req.body?.viewsCount === "number" && Number.isFinite(req.body.viewsCount)) {
+    updates.viewsCount = Math.max(0, Math.floor(req.body.viewsCount));
+  }
+  if (Object.keys(updates).length === 0) { res.status(400).json({ error: "Nenhum campo para atualizar" }); return; }
+  await db.update(profilesTable).set(updates).where(eq(profilesTable.userId, userId));
+  res.json({ success: true, ...updates });
+});
+
+router.get("/admin/site-settings", requireAdmin, async (_req, res): Promise<void> => {
+  const rows = await db.select().from(siteSettingsTable);
+  const out: Record<string, string> = {};
+  for (const r of rows) out[r.key] = r.value;
+  res.json(out);
+});
+
+router.patch("/admin/site-settings", requireAdmin, async (req, res): Promise<void> => {
+  const body = req.body ?? {};
+  for (const [key, value] of Object.entries(body)) {
+    if (typeof value !== "string") continue;
+    await db
+      .insert(siteSettingsTable)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: siteSettingsTable.key, set: { value, updatedAt: new Date() } });
+  }
+  res.json({ success: true });
+});
+
+const OG_HOME_DEFAULT = "https://ikiss.me/opengraph.jpg";
+const TRUSTED_OG_ORIGINS = new Set([
+  "ikiss.me",
+  "api.ikiss.me",
+  "pub-49759bd8e09c4e0b89e475d23d273d2f.r2.dev",
+]);
+
+function isTrustedOgUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:") return false;
+    // Allow any subdomain of ikiss.me or exact trusted hosts
+    const host = u.hostname;
+    if (TRUSTED_OG_ORIGINS.has(host)) return true;
+    if (host.endsWith(".ikiss.me")) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// Public: og home image redirect
+router.get("/og-home-image", async (_req, res): Promise<void> => {
+  try {
+    const [row] = await db
+      .select({ value: siteSettingsTable.value })
+      .from(siteSettingsTable)
+      .where(eq(siteSettingsTable.key, "og_home_image_url"))
+      .limit(1);
+    const candidate = row?.value?.trim() || "";
+    const url = candidate && isTrustedOgUrl(candidate) ? candidate : OG_HOME_DEFAULT;
+    res.redirect(302, url);
+  } catch {
+    res.redirect(302, OG_HOME_DEFAULT);
+  }
 });
 
 router.post("/admin/users/:userId/ban", requireAdmin, async (req, res): Promise<void> => {

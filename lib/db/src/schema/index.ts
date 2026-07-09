@@ -13,3 +13,4 @@ export * from "./stories";
 export * from "./media_gallery";
 export * from "./profile_publications";
 export * from "./publication_media";
+export * from "./site_settings";
