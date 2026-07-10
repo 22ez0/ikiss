@@ -20,6 +20,7 @@ import ClickEffect from "./ClickEffect";
 import TypewriterText from "./TypewriterText";
 import { StoriesViewer, type StoryItem } from "./StoriesViewer";
 import { PublicationCarousel, type PublicationItem } from "./PublicationCarousel";
+import { decodeDiscordBadges, DiscordStatusIcon, nitroIcon, boostIcon } from "../lib/discordBadges";
 
 interface GalleryItemPublic {
   id: number;
@@ -437,6 +438,7 @@ export default function ProfileView({ profile, isOwner, onFollow, onLike, isFoll
   }, [discordUserId]);
 
   const liveDiscordStatus: string = lanyardData?.discord_status || (profile as any).discordStatus || "offline";
+  const liveDiscordBadges = decodeDiscordBadges(lanyardData?.discord_user?.public_flags);
   const liveDiscordActivity: string | null = lanyardData?.activities?.[0]?.name || (profile as any).discordActivity || null;
   const liveDiscordUsername: string | null = lanyardData?.discord_user?.global_name || lanyardData?.discord_user?.username || (profile as any).discordUsername || null;
   const liveAvatarHash = lanyardData?.discord_user?.avatar;
@@ -733,13 +735,9 @@ export default function ProfileView({ profile, isOwner, onFollow, onLike, isFoll
             </button>
 
             {profile.discordConnected && showDiscordPresence && (
-              <div
-                className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-black"
-                style={{
-                  backgroundColor: STATUS_COLORS[liveDiscordStatus] || STATUS_COLORS.offline,
-                  boxShadow: `0 0 6px ${STATUS_COLORS[liveDiscordStatus] || STATUS_COLORS.offline}`,
-                }}
-              />
+              <div className="absolute -bottom-0.5 -right-0.5 rounded-full bg-black p-[1px]">
+                <DiscordStatusIcon status={liveDiscordStatus} size={12} />
+              </div>
             )}
           </div>
 
@@ -897,15 +895,12 @@ export default function ProfileView({ profile, isOwner, onFollow, onLike, isFoll
                   <SiDiscord className="w-3.5 h-3.5 text-white/55" />
                 )}
                 <span className="font-semibold text-[13px] text-white/90">{liveDiscordUsername}</span>
-                <span
-                  className="w-1.5 h-1.5 rounded-full inline-block"
-                  style={{
-                    backgroundColor: STATUS_COLORS[liveDiscordStatus] || STATUS_COLORS.offline,
-                    boxShadow: `0 0 6px ${STATUS_COLORS[liveDiscordStatus] || STATUS_COLORS.offline}`,
-                  }}
-                />
-                {(profile as any).discordNitro && <Gem className="w-3 h-3 text-pink-400/80" />}
-                {(profile as any).discordBoost && <Crown className="w-3 h-3 text-fuchsia-400/80" />}
+                <DiscordStatusIcon status={liveDiscordStatus} size={9} />
+                {liveDiscordBadges.map(b => (
+                  <img key={b.key} src={b.icon} alt={b.label} title={b.label} className="w-3.5 h-3.5" />
+                ))}
+                {(profile as any).discordNitro && <img src={nitroIcon} alt="Nitro" title="Nitro" className="w-3.5 h-3.5" />}
+                {(profile as any).discordBoost && <img src={boostIcon} alt="Server Booster" title="Server Booster" className="w-3.5 h-3.5" />}
               </div>
               <p className="text-[11px] italic text-white/45 leading-none">
                 {liveDiscordActivity

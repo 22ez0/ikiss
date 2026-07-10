@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ShieldBan, BadgeCheck, LogOut, AlertTriangle, CheckCircle, XCircle, Users, Flag, HeadphonesIcon, FileText, Settings, X as CloseIcon, Trash2, BarChart2, Globe } from "lucide-react";
+import { Search, ShieldBan, BadgeCheck, LogOut, AlertTriangle, CheckCircle, XCircle, Users, Flag, HeadphonesIcon, FileText, Settings, X as CloseIcon, Trash2, BarChart2, Globe, Heart } from "lucide-react";
 
 interface AdminUser {
   id: number;
@@ -48,6 +48,7 @@ interface PostReport {
   reporterIp: string | null;
   createdAt: string | null;
   postContent: string | null;
+  postLikesCount: number | null;
   reporterUserId: number | null;
 }
 
@@ -62,6 +63,10 @@ export default function AcessDev() {
   const [reports, setReports] = useState<AdminReport[]>([]);
   const [support, setSupport] = useState<SupportTicket[]>([]);
   const [postReports, setPostReports] = useState<PostReport[]>([]);
+  const [postLikesEdits, setPostLikesEdits] = useState<Record<number, string>>({});
+  const [postLikesSaving, setPostLikesSaving] = useState<number | null>(null);
+  const [quickPostId, setQuickPostId] = useState("");
+  const [quickPostLikes, setQuickPostLikes] = useState("");
   const [activeTab, setActiveTab] = useState<"users" | "reports" | "support" | "postReports" | "site">("users");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -235,6 +240,27 @@ export default function AcessDev() {
       setError(err.message);
     } finally {
       setEditingStatsSaving(false);
+    }
+  };
+
+  const savePostLikes = async (postId: number, likes: string) => {
+    const value = Number(likes);
+    if (!Number.isFinite(value)) return;
+    setPostLikesSaving(postId);
+    try {
+      await request(`/admin/posts/${postId}/stats`, {
+        method: "PATCH",
+        body: JSON.stringify({ likesCount: value }),
+      });
+      setPostLikesEdits(prev => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setPostLikesSaving(null);
     }
   };
 
@@ -613,6 +639,40 @@ export default function AcessDev() {
               <p className="text-white/30 text-xs">{postReports.length} denúncia{postReports.length !== 1 ? "s" : ""} de post</p>
               <button onClick={fetchPostReports} className="text-xs text-white/40 hover:text-white transition-colors">Atualizar</button>
             </div>
+
+            <div className="border border-white/10 bg-white/[0.03] p-4 mb-4 flex items-end gap-3 flex-wrap">
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-white/30 mb-1">ID do post</label>
+                <input
+                  value={quickPostId}
+                  onChange={e => setQuickPostId(e.target.value)}
+                  placeholder="Ex: 123"
+                  className="bg-black/30 border border-white/15 px-3 py-2 text-sm w-28 focus:outline-none focus:border-white/40"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-white/30 mb-1">Curtidas</label>
+                <input
+                  value={quickPostLikes}
+                  onChange={e => setQuickPostLikes(e.target.value)}
+                  placeholder="Ex: 500"
+                  type="number"
+                  className="bg-black/30 border border-white/15 px-3 py-2 text-sm w-28 focus:outline-none focus:border-white/40"
+                />
+              </div>
+              <button
+                disabled={!quickPostId || !quickPostLikes || postLikesSaving === Number(quickPostId)}
+                onClick={async () => {
+                  await savePostLikes(Number(quickPostId), quickPostLikes);
+                  setQuickPostId("");
+                  setQuickPostLikes("");
+                }}
+                className="px-4 py-2 border border-white/20 text-xs uppercase tracking-wider flex items-center gap-1.5 hover:bg-white/5 transition-colors disabled:opacity-30"
+              >
+                <Heart className="w-3.5 h-3.5" /> Definir curtidas
+              </button>
+            </div>
+
             {loading && <p className="text-white/40 text-sm">Carregando...</p>}
             <div className="space-y-3">
               {postReports.map(report => (
@@ -627,9 +687,25 @@ export default function AcessDev() {
                       {report.postContent && (
                         <p className="text-xs text-white/50 bg-white/[0.03] p-2 rounded-sm mb-2 line-clamp-3 whitespace-pre-wrap">{report.postContent}</p>
                       )}
-                      <div className="flex gap-4 text-xs text-white/25 flex-wrap">
+                      <div className="flex gap-4 text-xs text-white/25 flex-wrap mb-2">
                         {report.reporterIp && <span>IP: {report.reporterIp}</span>}
                         {report.createdAt && <span>{new Date(report.createdAt).toLocaleString("pt-BR")}</span>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Heart className="w-3.5 h-3.5 text-white/30" />
+                        <input
+                          value={postLikesEdits[report.postId] ?? String(report.postLikesCount ?? 0)}
+                          onChange={e => setPostLikesEdits(prev => ({ ...prev, [report.postId]: e.target.value }))}
+                          type="number"
+                          className="bg-black/30 border border-white/15 px-2 py-1 text-xs w-24 focus:outline-none focus:border-white/40"
+                        />
+                        <button
+                          disabled={postLikesSaving === report.postId}
+                          onClick={() => savePostLikes(report.postId, postLikesEdits[report.postId] ?? String(report.postLikesCount ?? 0))}
+                          className="px-2 py-1 border border-white/15 text-[11px] uppercase tracking-wider hover:bg-white/5 transition-colors disabled:opacity-30"
+                        >
+                          Salvar
+                        </button>
                       </div>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">

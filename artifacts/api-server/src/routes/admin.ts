@@ -139,6 +139,23 @@ router.patch("/admin/users/:userId/stats", requireAdmin, async (req, res): Promi
   res.json({ success: true, ...updates });
 });
 
+router.patch("/admin/posts/:postId/stats", requireAdmin, async (req, res): Promise<void> => {
+  const postId = Number(req.params.postId);
+  if (!Number.isFinite(postId)) { res.status(400).json({ error: "postId inválido" }); return; }
+  const [post] = await db.select({ id: postsTable.id }).from(postsTable).where(eq(postsTable.id, postId)).limit(1);
+  if (!post) { res.status(404).json({ error: "Post não encontrado" }); return; }
+  const updates: Record<string, number> = {};
+  if (typeof req.body?.likesCount === "number" && Number.isFinite(req.body.likesCount)) {
+    updates.likesCount = Math.max(0, Math.floor(req.body.likesCount));
+  }
+  if (typeof req.body?.commentsCount === "number" && Number.isFinite(req.body.commentsCount)) {
+    updates.commentsCount = Math.max(0, Math.floor(req.body.commentsCount));
+  }
+  if (Object.keys(updates).length === 0) { res.status(400).json({ error: "Nenhum campo para atualizar" }); return; }
+  await db.update(postsTable).set(updates).where(eq(postsTable.id, postId));
+  res.json({ success: true, ...updates });
+});
+
 router.get("/admin/site-settings", requireAdmin, async (_req, res): Promise<void> => {
   const rows = await db.select().from(siteSettingsTable);
   const out: Record<string, string> = {};
@@ -380,6 +397,7 @@ router.get("/admin/post-reports", requireAdmin, async (req, res): Promise<void> 
       createdAt: postReportsTable.createdAt,
       postContent: postsTable.content,
       postUserId: postsTable.userId,
+      postLikesCount: postsTable.likesCount,
       reporterUserId: postReportsTable.reporterUserId,
     })
     .from(postReportsTable)
