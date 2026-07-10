@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR" translate="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="google" content="notranslate" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Ikiss — Seu perfil, do seu jeito</title>
+    <meta name="description" content="Crie seu perfil personalizado na Ikiss. Música, links, efeitos e muito mais." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ikiss.me/" />
+    <meta property="og:title" content="Ikiss — Seu perfil, do seu jeito" />
+    <meta property="og:description" content="Crie seu perfil personalizado na Ikiss. Mostre sua música favorita, links e muito mais com um design único." />
+    <meta property="og:image" content="https://ikiss.me/opengraph.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Ikiss" />
+    <meta property="og:locale" content="pt_BR" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://ikiss.me/" />
+    <meta name="twitter:title" content="Ikiss — Seu perfil, do seu jeito" />
+    <meta name="twitter:description" content="Crie seu perfil personalizado na Ikiss. Mostre sua música favorita, links e muito mais com um design único." />
+    <meta name="twitter:image" content="https://ikiss.me/opengraph.jpg" />
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="shortcut icon" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Color emoji webfont — fixes flag/emoji rendering on Windows -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-CFDtIGUA.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DPBb314D.css">
+  </head>
+  <body style="background:#000;color:#fff">
+    <script>
+      (function () {
+        var redirect = sessionStorage.getItem("ikiss:redirect");
+        if (redirect) {
+          sessionStorage.removeItem("ikiss:redirect");
+          var base = document.querySelector("base");
+          var basePath = base ? base.getAttribute("href") || "/" : "/";
+          var cleanBase = basePath.replace(/\/$/, "");
+          var cleanRedirect = redirect.startsWith(cleanBase) ? redirect.slice(cleanBase.length) : redirect;
+          if (cleanRedirect && cleanRedirect !== "/" && window.history && window.history.replaceState) {
+            window.history.replaceState(null, "", basePath.replace(/\/$/, "") + cleanRedirect);
+          }
+        }
+      })();
+    </script>
+    <div id="root"></div>
+  </body>
+</html>
