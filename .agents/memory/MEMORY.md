@@ -4,3 +4,6 @@
 - [API fallback URL frontend](api-fallback.md) — home.tsx e register.tsx precisam de fallback explícito para https://api.ikiss.me quando VITE_API_URL não está definido; string vazia causa URL relativa que falha no GitHub Pages
 - [Ikiss dev setup](ikiss-dev-setup.md) — API local porta 8000 obrigatória; sem ela uploads R2 vão para Render suspenso
 - [R2 CDN proxy](r2-cdn-proxy.md) — bucket ikiss-media sem acesso público; arquivos servidos via /api/cdn/* na própria API
+- [Ikiss Render image deploy](ikiss-render-image-deploy.md) — serviço real é `ikiss-api` (image-based, GHCR), pode ficar dessincronizado do build mais recente; checar timestamps antes de assumir que o código em prod é o do repo
+- [Cloudflare Worker upload via API](cloudflare-worker-upload.md) — nome do campo multipart deve ser diferente do main_module, usar filename= para apontar o nome do módulo
+- [Cuidado ao imprimir env vars de provedores](secret-handling-caution.md) — nunca imprimir valores completos de listagens de env vars de APIs externas (Render etc.), só as chaves
